@@ -51,7 +51,6 @@
         #find-friends-btn { background: #28a745; color: white; margin-bottom: 8px; }
         #start-btn { background: #007bff; color: white; }
         .nexus-marker { text-align: center; position: relative; width: 40px; height: 65px; }
-        .stats-text { font-size: 10px; color: #777; margin-top: 8px; display: flex; justify-content: space-around; font-weight: bold; }
         .leaflet-marker-icon { background: none !important; border: none !important; }
     </style>
 </head>
@@ -74,7 +73,6 @@
         <video id="preview" style="width: 60px; height: 60px; border-radius: 50%; display: none; margin: 0 auto 10px; object-fit: cover; pointer-events: auto;" playsinline muted></video>
         <div id="main-panel" class="panel" style="display:none;">
             <button id="find-friends-btn" class="btn" onclick="zoomToAll()">👥 ГДЕ ДРУЗЬЯ?</button>
-            
             <div id="mood-selector" style="display: flex; justify-content: center; gap: 15px; margin-bottom: 5px;">
                 <span id="sel-☀️" style="font-size:32px; cursor:pointer; opacity:0.3;" onclick="selectMood('☀️')">☀️</span>
                 <span id="sel-😐" style="font-size:32px; cursor:pointer;" onclick="selectMood('😐')">😐</span>
@@ -82,7 +80,7 @@
                 <span id="sel-⚡" style="font-size:32px; cursor:pointer; opacity:0.3;" onclick="selectMood('⚡')">⚡</span>
             </div>
             <button id="pulse-btn" class="btn">❤️ ЗАМЕРИТЬ ПУЛЬС</button>
-            <button id="share-btn" class="btn" style="background:none; border: 1px solid #ddd; font-size: 11px; color: #777; margin-top:10px;" onclick="tg.openTelegramLink('https://t.me/share/url?url=https://t.me/ВАШ_БОТ?start=' + userId)">ПОЗВАТЬ ДРУЗЕЙ</button>
+            <button id="share-btn" class="btn" style="background:none; border: 1px solid #ddd; font-size: 11px; color: #777; margin-top:10px;" onclick="tg.openTelegramLink('https://t.me/share/url?url=https://t.me/NexusPulseBot?start=' + userId)">ПОЗВАТЬ ДРУЗЕЙ</button>
         </div>
         <button id="start-btn" class="btn">ВОЙТИ В NEXUS</button>
     </div>
@@ -108,8 +106,14 @@
             .subscribe();
 
         function handleRealtimeUpdate(payload) {
-            const data = payload.new;
+            const data = payload.new || payload.old;
             if (!data || String(data.user_id) === userId) return;
+            
+            if (payload.eventType === 'DELETE') {
+                removeMarker(data.user_id);
+                return;
+            }
+
             const dist = getDistance(myPos.lat, myPos.lng, data.lat, data.lng);
             if (activeMoods.includes(data.mood) && dist <= document.getElementById('radius-range').value) {
                 renderUser(data);
@@ -122,13 +126,14 @@
             if (markersMap[id]) { map.removeLayer(markersMap[id]); delete markersMap[id]; }
         }
 
-        // Кнопка ГДЕ ДРУЗЬЯ
         function zoomToAll() {
-            let group = new L.featureGroup([myMarker]);
-            Object.values(markersMap).forEach(m => group.addLayer(m));
-            if (group.getLayers().length > 1) {
-                map.fitBounds(group.getBounds(), { padding: [50, 50] });
-            } else {
+            let markers = [];
+            if (myMarker) markers.push(myMarker.getLatLng());
+            Object.values(markersMap).forEach(m => markers.push(m.getLatLng()));
+            
+            if (markers.length > 1) {
+                map.fitBounds(L.latLngBounds(markers), { padding: [50, 50] });
+            } else if (myPos.lat !== 0) {
                 map.setView([myPos.lat, myPos.lng], 16);
             }
         }
@@ -153,23 +158,23 @@
         };
 
         async function loadAllUsers() {
-            const { data } = await _supabase.from('pulses').select('*');
-            if (data) data.forEach(p => {
-                if (String(p.user_id) !== userId && activeMoods.includes(p.mood)) {
-                    if (getDistance(myPos.lat, myPos.lng, p.lat, p.lng) <= document.getElementById('radius-range').value) renderUser(p);
-                }
-            });
+            // Убрал фильтр по времени, чтобы точно видеть друзей
+            const { data, error } = await _supabase.from('pulses').select('*');
+            if (data) {
+                data.forEach(p => {
+                    if (String(p.user_id) !== userId) renderUser(p);
+                });
+            }
         }
 
         function renderUser(p) {
-            const isFriend = (String(p.user_id) === friendId || String(p.friend_id) === userId);
             const pulsingClass = p.is_pulsing ? 'pulse-active' : '';
+            const isFriend = (String(p.user_id) === friendId || String(p.friend_id) === userId);
             const bgLabel = isFriend ? 'rgba(0,123,255,0.7)' : 'rgba(255,255,255,0.6)';
-            const colorLabel = isFriend ? '#fff' : '#000';
             
             const iconHtml = `<div class="nexus-marker ${pulsingClass}">
-                <img src="${isFriend && p.user_photo ? p.user_photo : 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="avatar-img">
-                <div class="label" style="background:${bgLabel}; color:${colorLabel}; border:none;">${isFriend ? p.user_name : 'Ghost'}</div>
+                <img src="${p.user_photo || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="avatar-img">
+                <div class="label" style="background:${bgLabel}; color:${isFriend ? '#fff' : '#000'};">${p.user_name || 'Ghost'}</div>
                 <div style="font-size:18px;">${p.mood}</div>
             </div>`;
             
@@ -185,7 +190,7 @@
         function updateMyMarker() {
             const pulsingClass = isActuallyPulsing && lastPulseStatus ? 'pulse-active' : '';
             const photo = tg.initDataUnsafe.user?.photo_url || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
-            const iconHtml = `<div class="nexus-marker ${pulsingClass}"><img src="${photo}" class="avatar-img"><div class="label" style="background:rgba(255,255,255,0.6); border:none;">Вы</div><div style="font-size:22px;">${currentMood}</div></div>`;
+            const iconHtml = `<div class="nexus-marker ${pulsingClass}"><img src="${photo}" class="avatar-img"><div class="label" style="background:rgba(255,255,255,0.6);">Вы</div><div style="font-size:22px;">${currentMood}</div></div>`;
             const icon = L.divIcon({ html: iconHtml, iconSize: [40, 65] });
             if (!myMarker) myMarker = L.marker([myPos.lat, myPos.lng], { zIndexOffset: 1000, icon: icon }).addTo(map);
             else { myMarker.setLatLng([myPos.lat, myPos.lng]); myMarker.setIcon(icon); }
@@ -206,7 +211,7 @@
                 document.getElementById('preview').srcObject = stream;
                 document.getElementById('preview').play();
                 measureInterval = setInterval(processFrame, 800);
-            } catch(e) { console.error("Camera error:", e); }
+            } catch(e) { alert("Камера недоступна"); }
         }
 
         function stopPulse() {
@@ -219,20 +224,27 @@
             const video = document.getElementById('preview');
             if (!video.videoWidth) return;
             const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
-            canvas.width = 10; canvas.height = 10; 
-            ctx.drawImage(video, 0, 0, 10, 10);
+            canvas.width = 10; canvas.height = 10; ctx.drawImage(video, 0, 0, 10, 10);
             const data = ctx.getImageData(0, 0, 10, 10).data;
             let r = 0, g = 0;
             for (let i = 0; i < data.length; i += 4) { r += data[i]; g += data[i+1]; }
             const currentFingerOn = (r > 18000 && r > g * 1.55);
+            
             if (currentFingerOn !== lastPulseStatus) {
                 lastPulseStatus = currentFingerOn;
                 sendPulseData(currentFingerOn);
                 updateMyMarker();
-                if(currentFingerOn) tg.HapticFeedback.notificationOccurred('success');
             }
-            document.getElementById('instruction').innerText = currentFingerOn ? "Пульс фиксируется..." : "⚠️ ПРИЖМИ ПАЛЕЦ";
-            document.getElementById('instruction').style.color = currentFingerOn ? "#28a745" : "#d97706";
+
+            if (currentFingerOn) {
+                // ВИБРАЦИЯ В ТАКТ ПУЛЬСУ (каждую итерацию цикла)
+                tg.HapticFeedback.impactOccurred('light');
+                document.getElementById('instruction').innerText = "Пульс фиксируется...";
+                document.getElementById('instruction').style.color = "#28a745";
+            } else {
+                document.getElementById('instruction').innerText = "⚠️ ПРИЖМИ ПАЛЕЦ";
+                document.getElementById('instruction').style.color = "#d97706";
+            }
         }
 
         async function sendPulseData(pulsing) {
