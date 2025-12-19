@@ -9,51 +9,61 @@
     <style>
         body { margin: 0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
         #map { height: 100vh; width: 100vw; position: absolute; z-index: 1; filter: grayscale(0.2) brightness(0.6); }
-        #ui { position: absolute; bottom: 30px; left: 0; right: 0; z-index: 10; text-align: center; pointer-events: none; }
+        #ui { position: absolute; bottom: 20px; left: 0; right: 0; z-index: 10; text-align: center; pointer-events: none; }
         
         #sync-alert { 
-            position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%); 
-            background: rgba(255, 0, 0, 0.9); color: white; padding: 20px; border-radius: 20px; 
-            z-index: 100; display: none; text-align: center; width: 80%; box-shadow: 0 0 30px red;
-            pointer-events: auto; font-weight: bold;
+            position: absolute; top: 15%; left: 50%; transform: translateX(-50%); 
+            background: rgba(255, 0, 0, 0.9); color: white; padding: 15px; border-radius: 20px; 
+            z-index: 100; display: none; text-align: center; width: 80%; box-shadow: 0 0 20px red; font-weight: bold;
         }
 
         #mood-container { 
-            display: none; margin-bottom: 20px; pointer-events: auto; 
-            background: rgba(0,0,0,0.85); padding: 15px; border-radius: 30px; 
-            border: 1px solid #333; width: fit-content; margin: 0 auto 20px; 
+            display: none; pointer-events: auto; background: rgba(0,0,0,0.85); 
+            padding: 15px; border-radius: 25px; border: 1px solid #333; width: 90%; margin: 0 auto 15px; 
         }
-        #mood-title { font-size: 14px; margin-bottom: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+        #mood-stats { font-size: 11px; color: #888; margin-top: 10px; display: flex; justify-content: space-around; }
         
-        .btn { padding: 18px 25px; border-radius: 35px; border: none; cursor: pointer; font-weight: bold; margin: 8px auto; display: block; width: 85%; pointer-events: auto; }
-        #start-btn { background: #ff4d4d; color: white; box-shadow: 0 0 20px rgba(255,0,0,0.5); }
-        #share-btn { background: rgba(255,255,255,0.15); color: white; border: 1px solid #fff; }
+        .btn { padding: 15px; border-radius: 30px; border: none; cursor: pointer; font-weight: bold; margin: 5px auto; display: block; width: 85%; pointer-events: auto; }
+        #pulse-btn { background: #ff4d4d; color: white; display: none; transition: 0.3s; }
+        #start-btn { background: #fff; color: #000; }
+        #share-btn { background: rgba(255,255,255,0.1); color: white; border: 1px solid #fff; font-size: 12px; }
         
-        video { width: 80px; height: 80px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; display: none; margin: 0 auto 15px; pointer-events: auto; }
-        .mood-btn { font-size: 32px; background: none; border: none; cursor: pointer; margin: 0 10px; transition: transform 0.2s; }
-        .selected-mood { transform: scale(1.3); filter: drop-shadow(0 0 10px red); }
-        .mood-marker { display: flex; align-items: center; justify-content: center; background: rgba(255, 77, 77, 0.2); border: 1px solid rgba(255, 77, 77, 0.5); border-radius: 50%; font-size: 20px; }
+        #instruction { color: #ffbc00; font-size: 13px; margin: 10px 0; display: none; text-shadow: 0 0 5px #000; font-weight: bold; }
+        
+        video { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; display: none; margin: 0 auto 10px; pointer-events: auto; }
+        
+        .mood-btn { font-size: 28px; background: none; border: none; cursor: pointer; transition: 0.2s; opacity: 0.4; }
+        .selected-mood { opacity: 1; transform: scale(1.3); }
+
+        .nexus-marker { text-align: center; transition: all 0.5s ease-out; }
+        .avatar-img { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #ff4d4d; background: #222; margin-bottom: -5px; box-shadow: 0 0 10px rgba(255,77,77,0.5); }
+        .mood-emoji { font-size: 20px; display: block; filter: drop-shadow(0 0 5px black); }
     </style>
 </head>
 <body>
     <div id="sync-alert"></div>
     <div id="map"></div>
     <div id="ui">
-        <div id="status" style="font-size: 40px; height: 50px; text-shadow: 0 0 10px red;"></div>
+        <div id="status" style="font-size: 30px; height: 40px;"></div>
+        <div id="instruction">⚠️ Плотно прижми палец к камере</div>
         <video id="preview" autoplay playsinline></video>
         
         <div id="mood-container">
-            <div id="mood-title">Выбери настроение</div>
+            <div style="font-size: 11px; color: #aaa; margin-bottom: 8px; letter-spacing: 1px;">ВЫБЕРИ НАСТРОЕНИЕ</div>
             <div id="mood-buttons">
                 <button class="mood-btn" onclick="setMood('☀️', this)">☀️</button>
                 <button class="mood-btn selected-mood" onclick="setMood('😐', this)">😐</button>
                 <button class="mood-btn" onclick="setMood('🌧️', this)">🌧️</button>
                 <button class="mood-btn" onclick="setMood('⚡', this)">⚡</button>
             </div>
+            <div id="mood-stats">
+                <span id="stat-☀️">☀️ 0%</span> <span id="stat-😐">😐 0%</span> <span id="stat-🌧️">🌧️ 0%</span> <span id="stat-⚡">⚡ 0%</span>
+            </div>
         </div>
 
-        <button id="start-btn" class="btn">ВОЙТИ В ЗЕРКАЛО</button>
-        <button id="share-btn" class="btn">👥 Позвать друзей</button>
+        <button id="start-btn" class="btn">ВОЙТИ В NEXUS</button>
+        <button id="pulse-btn" class="btn">❤️ ЗАМЕРИТЬ ПУЛЬС</button>
+        <button id="share-btn" class="btn">👥 ПОЗВАТЬ ДРУЗЕЙ</button>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -68,72 +78,114 @@
         const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20, 0], 2);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-        let myPos = { lat: 0, lng: 0 };
-        let currentMood = '😐';
+        let myPos = { lat: 0, lng: 0 }, currentMood = '😐', isMeasuring = false, myMarker = null;
         let userId = tg.initDataUnsafe.user?.id || Date.now();
-        let userName = tg.initDataUnsafe.user?.first_name || "Друг";
+        let userName = tg.initDataUnsafe.user?.first_name || "Ghost";
+        let userPhoto = tg.initDataUnsafe.user?.photo_url || ""; 
         let friendId = tg.initDataUnsafe.start_param || null;
 
         document.getElementById('start-btn').onclick = function() {
             this.style.display = 'none';
-            document.getElementById('preview').style.display = 'block';
+            document.getElementById('pulse-btn').style.display = 'block';
             document.getElementById('mood-container').style.display = 'block';
+            
             navigator.geolocation.watchPosition(p => {
                 myPos = { lat: p.coords.latitude, lng: p.coords.longitude };
                 map.setView([myPos.lat, myPos.lng], 15);
+                updateMyMarker();
             }, null, { enableHighAccuracy: true });
-            startSensor();
+
+            loadCurrentMoods();
         };
+
+        async function loadCurrentMoods() {
+            const { data } = await _supabase.from('pulses').select('*').gt('created_at', new Date(Date.now() - 6 * 3600000).toISOString());
+            if (data) {
+                const counts = { '☀️': 0, '😐': 0, '🌧️': 0, '⚡': 0 };
+                data.forEach(p => {
+                    if (p.user_id != userId) renderOtherOnMap(p);
+                    if (counts[p.mood] !== undefined) counts[p.mood]++;
+                });
+                updateStats(counts, data.length);
+            }
+        }
+
+        function updateStats(counts, total) {
+            total = total || 1;
+            Object.keys(counts).forEach(m => {
+                document.getElementById(`stat-${m}`).innerText = `${m} ${Math.round(counts[m]/total*100)}%`;
+            });
+        }
 
         function setMood(mood, el) {
             currentMood = mood;
             document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected-mood'));
             el.classList.add('selected-mood');
             tg.HapticFeedback.impactOccurred('medium');
-            sendData();
+            updateMyMarker(); // Мгновенная перерисовка на карте
+            sendData(); // Отправка в базу
+        }
+
+        function updateMyMarker() {
+            if (myPos.lat === 0) return;
+            const iconHtml = `
+                <div class="nexus-marker" style="filter: drop-shadow(0 0 8px #ff4d4d);">
+                    ${userPhoto ? `<img src="${userPhoto}" class="avatar-img">` : `<div class="avatar-img" style="background:#ff4d4d; color:white; font-size:12px; line-height:32px;">${userName[0]}</div>`}
+                    <span class="mood-emoji">${currentMood}</span>
+                </div>`;
+            const icon = L.divIcon({ className: 'custom-div-icon', html: iconHtml, iconSize: [40, 50] });
+
+            if (!myMarker) {
+                myMarker = L.marker([myPos.lat, myPos.lng], { icon, zIndexOffset: 1000 }).addTo(map);
+            } else {
+                myMarker.setLatLng([myPos.lat, myPos.lng]);
+                myMarker.setIcon(icon);
+            }
+        }
+
+        function renderOtherOnMap(p) {
+            const iconHtml = `
+                <div class="nexus-marker">
+                    ${p.user_photo ? `<img src="${p.user_photo}" class="avatar-img" style="border-color:#555;">` : `<div class="avatar-img" style="background:#333; color:white; font-size:10px; line-height:30px;">${p.user_name[0]}</div>`}
+                    <span class="mood-emoji">${p.mood}</span>
+                </div>`;
+            const icon = L.divIcon({ className: 'custom-div-icon', html: iconHtml, iconSize: [40, 50] });
+            const marker = L.marker([p.lat, p.lng], { icon }).addTo(map);
+            setTimeout(() => map.removeLayer(marker), 6 * 3600000);
         }
 
         _supabase.channel('public:pulses').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pulses' }, payload => {
             const p = payload.new;
-            renderMoodOnMap(p.lat, p.lng, p.mood);
-            
-            const isFriend = (p.user_id == friendId || p.friend_id == userId);
-            const isNow = Math.abs(Date.now() - new Date(p.created_at).getTime()) < 1500;
-
-            if (isFriend && isNow && p.user_id != userId && myPos.lat !== 0) {
-                showSyncAlert(p.user_name || "Друг");
-                drawSyncLine(myPos, { lat: p.lat, lng: p.lng });
+            if (p.user_id != userId) renderOtherOnMap(p);
+            if (p.user_id == friendId || p.friend_id == userId) {
+                if (Math.abs(Date.now() - new Date(p.created_at).getTime()) < 2000) showSync(p.user_name);
             }
         }).subscribe();
 
-        function renderMoodOnMap(lat, lng, mood) {
-            const icon = L.divIcon({ className: 'mood-marker', html: mood, iconSize: [30, 30] });
-            const marker = L.marker([lat, lng], { icon }).addTo(map);
-            setTimeout(() => map.removeLayer(marker), 6 * 60 * 60 * 1000); 
-        }
-
-        function showSyncAlert(name) {
-            const alertBox = document.getElementById('sync-alert');
-            alertBox.innerHTML = `❤️ СИНХРОНИЗАЦИЯ!<br>Вы с ${name} на одной волне!`;
-            alertBox.style.display = 'block';
+        function showSync(name) {
+            const a = document.getElementById('sync-alert');
+            a.innerHTML = `❤️ СИНХРОНИЗАЦИЯ!<br>Вы с ${name} на одной волне!`;
+            a.style.display = 'block';
             tg.HapticFeedback.notificationOccurred('success');
-            setTimeout(() => alertBox.style.display = 'none', 5000);
+            setTimeout(() => a.style.display = 'none', 5000);
         }
-
-        function drawSyncLine(p1, p2) {
-            const line = L.polyline([[p1.lat, p1.lng], [p2.lat, p2.lng]], { color: '#ff4d4d', weight: 2, opacity: 0.8 }).addTo(map);
-            setTimeout(() => map.removeLayer(line), 3000);
-        }
-
-        document.getElementById('share-btn').onclick = () => {
-            const url = `https://t.me/PulseMapTestBot/app?startapp=${userId}`;
-            tg.openTelegramLink(`https://t.me/share/url?url=${url}&text=${encodeURIComponent("Посмотри на мое настроение в Зеркале!")}`);
-        };
 
         const video = document.getElementById('preview');
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        let lastSend = 0;
+        
+        document.getElementById('pulse-btn').onclick = function() {
+            if (!isMeasuring) {
+                this.innerText = "🛑 ОСТАНОВИТЬ";
+                this.style.background = "#333";
+                video.style.display = 'block';
+                document.getElementById('instruction').style.display = 'block';
+                startSensor();
+            } else {
+                location.reload();
+            }
+            isMeasuring = !isMeasuring;
+        };
 
         async function startSensor() {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
@@ -142,29 +194,39 @@
         }
 
         function loop() {
+            if (!isMeasuring) return;
             canvas.width = 10; canvas.height = 10;
             ctx.drawImage(video, 0, 0, 10, 10);
             const data = ctx.getImageData(0, 0, 10, 10).data;
             let r = 0; for (let i = 0; i < data.length; i += 4) r += data[i];
-            if (r > 19000) {
+
+            if (r > 18500) { 
                 document.getElementById('status').innerText = "❤️";
-                if (Date.now() - lastSend > 2000) {
-                    sendData();
-                    tg.HapticFeedback.impactOccurred('light');
-                    lastSend = Date.now();
-                }
-            } else { document.getElementById('status').innerText = ""; }
-            requestAnimationFrame(loop);
+                document.getElementById('instruction').innerText = "Пульс фиксируется...";
+                document.getElementById('instruction').style.color = "#00ff00";
+                sendData();
+                tg.HapticFeedback.impactOccurred('light');
+            } else {
+                document.getElementById('status').innerText = "";
+                document.getElementById('instruction').innerText = "⚠️ Прижми палец плотнее к камере";
+                document.getElementById('instruction').style.color = "#ffbc00";
+            }
+            setTimeout(() => requestAnimationFrame(loop), 1200);
         }
 
         async function sendData() {
             if (myPos.lat === 0) return;
-            const tz = new Date().getTimezoneOffset() / -60;
             await _supabase.from('pulses').insert([{ 
                 lat: myPos.lat, lng: myPos.lng, bpm: 75, user_id: userId, 
-                user_name: userName, friend_id: friendId, timezone: tz, mood: currentMood 
+                user_name: userName, user_photo: userPhoto, friend_id: friendId, 
+                timezone: new Date().getTimezoneOffset() / -60, mood: currentMood 
             }]);
         }
+
+        document.getElementById('share-btn').onclick = () => {
+            const url = `https://t.me/PulseMapTestBot/app?startapp=${userId}`;
+            tg.openTelegramLink(`https://t.me/share/url?url=${url}&text=${encodeURIComponent("Синхронизируйся со мной в Nexus!")}`);
+        };
     </script>
 </body>
 </html>
