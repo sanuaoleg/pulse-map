@@ -3,75 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Debug Pulse</title>
+    <title>Pulse Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; text-align: center; }
-        video { width: 150px; height: 150px; border: 2px solid #333; border-radius: 10px; object-fit: cover; margin-top: 10px; }
-        #bpm { font-size: 60px; margin: 20px; color: red; height: 80px; }
-        button { padding: 15px; background: #222; color: #fff; border: 1px solid #555; border-radius: 10px; margin: 10px; }
+        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; }
+        #map { height: 100vh; width: 100vw; z-index: 1; }
+        #controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10; text-align: center; width: 90%; }
+        video { width: 80px; height: 80px; border-radius: 50%; border: 2px solid #ff4d4d; object-fit: cover; }
+        #bpm-status { font-size: 40px; text-shadow: 0 0 10px red; }
+        .pulse-icon { background: rgba(255, 0, 0, 0.6); border-radius: 50%; box-shadow: 0 0 15px rgba(255, 0, 0, 0.8); }
     </style>
 </head>
 <body>
-    <div id="bpm">--</div>
-    <video id="preview" autoplay playsinline></video><br>
-    <button onclick="switchCamera()">Сменить камеру</button>
-    <p id="info">Приложи палец к линзе так, чтобы экран стал красным</p>
+    <div id="map"></div>
+    <div id="controls">
+        <div id="bpm-status">--</div>
+        <video id="preview" autoplay playsinline></video>
+        <p>Приложи палец и подожди ❤️</p>
+    </div>
     <canvas id="analyzer" width="10" height="10" style="display:none"></canvas>
 
     <script>
+        const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20, 0], 2);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+
         const video = document.getElementById('preview');
         const canvas = document.getElementById('analyzer');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        const bpmDisplay = document.getElementById('bpm');
-        
-        let currentStream = null;
-        let useFront = false;
+        let myMarker = null;
 
-        async function init(facing) {
-            if (currentStream) currentStream.getTracks().forEach(t => t.stop());
-            
-            const constraints = {
-                video: { facingMode: facing ? "user" : "environment" },
-                audio: false
-            };
+        // Определяем местоположение
+        navigator.geolocation.getCurrentPosition(pos => {
+            const { latitude, longitude } = pos.coords;
+            map.setView([latitude, longitude], 12);
+            myMarker = L.divIcon({ className: 'pulse-icon', iconSize: [20, 20] });
+            L.marker([latitude, longitude], { icon: myMarker }).addTo(map);
+        });
 
-            try {
-                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-                video.srcObject = currentStream;
-                process();
-            } catch (e) {
-                alert("Ошибка: " + e);
-            }
-        }
-
-        function switchCamera() {
-            useFront = !useFront;
-            init(useFront);
+        async function init() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            video.srcObject = stream;
+            process();
         }
 
         function process() {
-            if (!currentStream.active) return;
-            
             ctx.drawImage(video, 0, 0, 10, 10);
             const data = ctx.getImageData(0, 0, 10, 10).data;
-            
-            // Считаем сумму красного
             let r = 0;
             for (let i = 0; i < data.length; i += 4) r += data[i];
-            
-            // Если экран стал очень красным (палец на камере)
-            if (r > 15000) { // Порог зависит от освещенности
-                bpmDisplay.innerText = "❤️";
+
+            if (r > 15000) { // Если палец на камере
+                document.getElementById('bpm-status').innerText = "❤️";
                 if (navigator.vibrate) navigator.vibrate(50);
-                setTimeout(() => { bpmDisplay.innerText = " "; }, 150);
-            } else {
-                bpmDisplay.innerText = "WAIT";
+                // Тут мы будем отправлять сигнал в базу данных
+                pulseMarker();
             }
-            
             requestAnimationFrame(process);
         }
 
-        init(false);
+        function pulseMarker() {
+            // Эффект пульсации на карте (временно визуально)
+            const icon = document.querySelector('.pulse-icon');
+            if (icon) {
+                icon.style.transform = 'scale(2)';
+                setTimeout(() => icon.style.transform = 'scale(1)', 200);
+            }
+        }
+
+        init();
     </script>
 </body>
 </html>
