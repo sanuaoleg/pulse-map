@@ -11,7 +11,6 @@
         #map { height: 100vh; width: 100vw; position: absolute; z-index: 1; }
         #ui { position: absolute; bottom: 20px; left: 0; right: 0; z-index: 10; text-align: center; pointer-events: none; }
         
-        /* Стеклянные панели */
         .panel { 
             pointer-events: auto; background: rgba(255,255,255,0.7); 
             padding: 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.3); 
@@ -21,7 +20,6 @@
         #filter-container { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 10; width: 90%; pointer-events: auto; }
         #instruction { color: #d97706; font-size: 13px; font-weight: bold; margin-bottom: 10px; display: none; }
 
-        /* АНИМАЦИЯ ПУЛЬСАЦИИ */
         @keyframes pulse-ring {
             0% { transform: scale(0.8); opacity: 0.8; }
             100% { transform: scale(2.2); opacity: 0; }
@@ -33,13 +31,11 @@
             z-index: 1;
         }
 
-        /* ЧИСТЫЕ АВАТАРЫ БЕЗ ОКАНТОВКИ */
         .avatar-img { 
             width: 38px; height: 38px; border-radius: 50%; object-fit: cover; 
             border: none !important; box-shadow: none !important; position: relative; z-index: 2; 
         }
 
-        /* ПОДПИСИ С РАЗМЫТИЕМ (BLUR) */
         .label { 
             font-size: 10px; font-weight: bold; border-radius: 6px; padding: 2px 6px; 
             display: inline-block; margin-top: 2px; position: relative; z-index: 2;
@@ -52,6 +48,7 @@
         .range-slider { width: 100%; accent-color: #007bff; margin: 8px 0; }
         .btn { padding: 15px; border-radius: 30px; border: none; font-weight: bold; width: 85%; pointer-events: auto; margin: 5px auto; display: block; font-size: 14px; }
         #pulse-btn { background: #ff4d4d; color: white; display: none; box-shadow: 0 4px 10px rgba(255,77,77,0.3); }
+        #find-friends-btn { background: #28a745; color: white; margin-bottom: 8px; }
         #start-btn { background: #007bff; color: white; }
         .nexus-marker { text-align: center; position: relative; width: 40px; height: 65px; }
         .stats-text { font-size: 10px; color: #777; margin-top: 8px; display: flex; justify-content: space-around; font-weight: bold; }
@@ -61,7 +58,7 @@
 <body>
     <div id="filter-container" class="panel">
         <div style="font-size: 10px; color: #666; font-weight: bold;">ВИДИМОСТЬ: <span id="radius-val">1000</span>м</div>
-        <input type="range" min="100" max="5000" value="1000" class="range-slider" id="radius-range">
+        <input type="range" min="100" max="5000" value="1000" class="range-slider" id="radius-range" oninput="document.getElementById('radius-val').innerText=this.value">
         <div id="mood-filters" style="display: flex; justify-content: space-around;">
             <button class="mood-btn active" data-mood="☀️">☀️</button>
             <button class="mood-btn active" data-mood="😐">😐</button>
@@ -74,19 +71,18 @@
 
     <div id="ui">
         <div id="instruction">⚠️ ПРИЖМИ ПАЛЕЦ К КАМЕРЕ</div>
-        <video id="preview" style="width: 60px; height: 60px; border-radius: 50%; display: none; margin: 0 auto 10px; object-fit: cover; pointer-events: auto;"></video>
+        <video id="preview" style="width: 60px; height: 60px; border-radius: 50%; display: none; margin: 0 auto 10px; object-fit: cover; pointer-events: auto;" playsinline muted></video>
         <div id="main-panel" class="panel" style="display:none;">
+            <button id="find-friends-btn" class="btn" onclick="zoomToAll()">👥 ГДЕ ДРУЗЬЯ?</button>
+            
             <div id="mood-selector" style="display: flex; justify-content: center; gap: 15px; margin-bottom: 5px;">
                 <span id="sel-☀️" style="font-size:32px; cursor:pointer; opacity:0.3;" onclick="selectMood('☀️')">☀️</span>
                 <span id="sel-😐" style="font-size:32px; cursor:pointer;" onclick="selectMood('😐')">😐</span>
                 <span id="sel-🌧️" style="font-size:32px; cursor:pointer; opacity:0.3;" onclick="selectMood('🌧️')">🌧️</span>
                 <span id="sel-⚡" style="font-size:32px; cursor:pointer; opacity:0.3;" onclick="selectMood('⚡')">⚡</span>
             </div>
-            <div class="stats-text" id="stats-display">
-                <span id="p-☀️">☀️ 0%</span> <span id="p-😐">😐 0%</span> <span id="p-🌧️">🌧️ 0%</span> <span id="p-⚡">⚡ 0%</span>
-            </div>
             <button id="pulse-btn" class="btn">❤️ ЗАМЕРИТЬ ПУЛЬС</button>
-            <button id="share-btn" class="btn" style="background:none; border: 1px solid #ddd; font-size: 11px; color: #777; margin-top:10px;">👥 ПОЗВАТЬ ДРУЗЕЙ</button>
+            <button id="share-btn" class="btn" style="background:none; border: 1px solid #ddd; font-size: 11px; color: #777; margin-top:10px;" onclick="tg.openTelegramLink('https://t.me/share/url?url=https://t.me/ВАШ_БОТ?start=' + userId)">ПОЗВАТЬ ДРУЗЕЙ</button>
         </div>
         <button id="start-btn" class="btn">ВОЙТИ В NEXUS</button>
     </div>
@@ -96,6 +92,7 @@
 
     <script>
         const tg = window.Telegram.WebApp;
+        tg.expand();
         const _supabase = supabase.createClient('https://efomfhxtzqixmtykbekr.supabase.co', 'sb_publishable_Q4jqU-sJWZloPAEcgs7TpA_fLA_NnIZ');
         
         const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([0,0], 2);
@@ -125,6 +122,17 @@
             if (markersMap[id]) { map.removeLayer(markersMap[id]); delete markersMap[id]; }
         }
 
+        // Кнопка ГДЕ ДРУЗЬЯ
+        function zoomToAll() {
+            let group = new L.featureGroup([myMarker]);
+            Object.values(markersMap).forEach(m => group.addLayer(m));
+            if (group.getLayers().length > 1) {
+                map.fitBounds(group.getBounds(), { padding: [50, 50] });
+            } else {
+                map.setView([myPos.lat, myPos.lng], 16);
+            }
+        }
+
         function selectMood(m) {
             currentMood = m;
             ['☀️','😐','🌧️','⚡'].forEach(emo => document.getElementById('sel-'+emo).style.opacity = (emo === m ? '1' : '0.3'));
@@ -145,7 +153,7 @@
         };
 
         async function loadAllUsers() {
-            const { data } = await _supabase.from('pulses').select('*').gt('created_at', new Date(Date.now() - 24 * 3600000).toISOString());
+            const { data } = await _supabase.from('pulses').select('*');
             if (data) data.forEach(p => {
                 if (String(p.user_id) !== userId && activeMoods.includes(p.mood)) {
                     if (getDistance(myPos.lat, myPos.lng, p.lat, p.lng) <= document.getElementById('radius-range').value) renderUser(p);
@@ -156,7 +164,6 @@
         function renderUser(p) {
             const isFriend = (String(p.user_id) === friendId || String(p.friend_id) === userId);
             const pulsingClass = p.is_pulsing ? 'pulse-active' : '';
-            // Стеклянная плашка с блюром
             const bgLabel = isFriend ? 'rgba(0,123,255,0.7)' : 'rgba(255,255,255,0.6)';
             const colorLabel = isFriend ? '#fff' : '#000';
             
@@ -177,7 +184,8 @@
 
         function updateMyMarker() {
             const pulsingClass = isActuallyPulsing && lastPulseStatus ? 'pulse-active' : '';
-            const iconHtml = `<div class="nexus-marker ${pulsingClass}"><img src="${tg.initDataUnsafe.user?.photo_url || ''}" class="avatar-img"><div class="label" style="background:rgba(255,255,255,0.6); border:none;">Вы</div><div style="font-size:22px;">${currentMood}</div></div>`;
+            const photo = tg.initDataUnsafe.user?.photo_url || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+            const iconHtml = `<div class="nexus-marker ${pulsingClass}"><img src="${photo}" class="avatar-img"><div class="label" style="background:rgba(255,255,255,0.6); border:none;">Вы</div><div style="font-size:22px;">${currentMood}</div></div>`;
             const icon = L.divIcon({ html: iconHtml, iconSize: [40, 65] });
             if (!myMarker) myMarker = L.marker([myPos.lat, myPos.lng], { zIndexOffset: 1000, icon: icon }).addTo(map);
             else { myMarker.setLatLng([myPos.lat, myPos.lng]); myMarker.setIcon(icon); }
@@ -193,9 +201,12 @@
         };
 
         async function startPulse() {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-            document.getElementById('preview').srcObject = stream;
-            measureInterval = setInterval(processFrame, 800);
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                document.getElementById('preview').srcObject = stream;
+                document.getElementById('preview').play();
+                measureInterval = setInterval(processFrame, 800);
+            } catch(e) { console.error("Camera error:", e); }
         }
 
         function stopPulse() {
@@ -205,8 +216,11 @@
         }
 
         function processFrame() {
-            const video = document.getElementById('preview'), canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
-            canvas.width = 10; canvas.height = 10; ctx.drawImage(video, 0, 0, 10, 10);
+            const video = document.getElementById('preview');
+            if (!video.videoWidth) return;
+            const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
+            canvas.width = 10; canvas.height = 10; 
+            ctx.drawImage(video, 0, 0, 10, 10);
             const data = ctx.getImageData(0, 0, 10, 10).data;
             let r = 0, g = 0;
             for (let i = 0; i < data.length; i += 4) { r += data[i]; g += data[i+1]; }
