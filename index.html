@@ -3,53 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Ghost-Checker: Nexus</title>
+    <title>Ghost-Checker: Nexus (Light Edition)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
-        #map { height: 100vh; width: 100vw; position: absolute; z-index: 1; filter: grayscale(0.2) brightness(0.6); }
+        /* Светлая тема для основного интерфейса */
+        body { margin: 0; background: #f0f2f5; color: #1a1a1b; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }
+        
+        /* Убраны фильтры яркости для светлой карты */
+        #map { height: 100vh; width: 100vw; position: absolute; z-index: 1; }
+        
         #ui { position: absolute; bottom: 20px; left: 0; right: 0; z-index: 10; text-align: center; pointer-events: none; }
         
         #sync-alert { 
             position: absolute; top: 15%; left: 50%; transform: translateX(-50%); 
-            background: rgba(255, 0, 0, 0.9); color: white; padding: 15px; border-radius: 20px; 
-            z-index: 100; display: none; text-align: center; width: 80%; box-shadow: 0 0 20px red; font-weight: bold;
+            background: rgba(255, 255, 255, 0.95); color: #ff4d4d; padding: 15px; border-radius: 20px; 
+            z-index: 100; display: none; text-align: center; width: 80%; box-shadow: 0 10px 25px rgba(0,0,0,0.1); font-weight: bold; border: 1px solid #ff4d4d;
         }
 
         #mood-container { 
-            display: none; pointer-events: auto; background: rgba(0,0,0,0.85); 
-            padding: 15px; border-radius: 25px; border: 1px solid #333; width: 90%; margin: 0 auto 15px; 
+            display: none; pointer-events: auto; background: rgba(255,255,255,0.9); 
+            padding: 15px; border-radius: 25px; border: 1px solid #ddd; width: 90%; margin: 0 auto 15px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); backdrop-filter: blur(10px);
         }
-        #mood-stats { font-size: 11px; color: #888; margin-top: 10px; display: flex; justify-content: space-around; }
+        #mood-stats { font-size: 11px; color: #666; margin-top: 10px; display: flex; justify-content: space-around; }
         
-        .btn { padding: 15px; border-radius: 30px; border: none; cursor: pointer; font-weight: bold; margin: 5px auto; display: block; width: 85%; pointer-events: auto; }
-        #pulse-btn { background: #ff4d4d; color: white; display: none; transition: 0.3s; }
-        #start-btn { background: #fff; color: #000; }
-        #share-btn { background: rgba(255,255,255,0.1); color: white; border: 1px solid #fff; font-size: 12px; }
+        .btn { padding: 15px; border-radius: 30px; border: none; cursor: pointer; font-weight: bold; margin: 5px auto; display: block; width: 85%; pointer-events: auto; font-size: 14px; transition: 0.2s; }
+        #pulse-btn { background: #ff4d4d; color: white; display: none; box-shadow: 0 4px 12px rgba(255,77,77,0.3); }
+        #start-btn { background: #007bff; color: #fff; box-shadow: 0 4px 12px rgba(0,123,255,0.3); }
+        #share-btn { background: #fff; color: #555; border: 1px solid #ddd; font-size: 12px; }
         
-        #instruction { color: #ffbc00; font-size: 13px; margin: 10px 0; display: none; text-shadow: 0 0 5px #000; font-weight: bold; }
+        #instruction { color: #d97706; font-size: 13px; margin: 10px 0; display: none; font-weight: bold; }
         
-        video { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; display: none; margin: 0 auto 10px; pointer-events: auto; }
+        video { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #007bff; object-fit: cover; display: none; margin: 0 auto 10px; pointer-events: auto; }
         
-        .mood-btn { font-size: 28px; background: none; border: none; cursor: pointer; transition: 0.2s; opacity: 0.4; }
+        .mood-btn { font-size: 28px; background: none; border: none; cursor: pointer; transition: 0.2s; opacity: 0.3; }
         .selected-mood { opacity: 1; transform: scale(1.3); }
 
-        .nexus-marker { text-align: center; transition: all 0.5s ease-out; }
-        .avatar-img { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #ff4d4d; background: #222; margin-bottom: -5px; box-shadow: 0 0 10px rgba(255,77,77,0.5); }
-        .mood-emoji { font-size: 20px; display: block; filter: drop-shadow(0 0 5px black); }
+        /* Маркеры на светлом фоне */
+        .nexus-marker { text-align: center; }
+        .avatar-img { width: 34px; height: 34px; border-radius: 50%; border: 2px solid #fff; background: #eee; margin-bottom: -5px; box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        .mood-emoji { font-size: 20px; display: block; }
     </style>
 </head>
 <body>
     <div id="sync-alert"></div>
     <div id="map"></div>
     <div id="ui">
-        <div id="status" style="font-size: 30px; height: 40px;"></div>
+        <div id="status" style="font-size: 30px; height: 40px; color: #ff4d4d;"></div>
         <div id="instruction">⚠️ Плотно прижми палец к камере</div>
         <video id="preview" autoplay playsinline></video>
         
         <div id="mood-container">
-            <div style="font-size: 11px; color: #aaa; margin-bottom: 8px; letter-spacing: 1px;">ВЫБЕРИ НАСТРОЕНИЕ</div>
+            <div style="font-size: 10px; color: #888; margin-bottom: 8px; letter-spacing: 1px; font-weight: bold;">ВАШЕ НАСТРОЕНИЕ</div>
             <div id="mood-buttons">
                 <button class="mood-btn" onclick="setMood('☀️', this)">☀️</button>
                 <button class="mood-btn selected-mood" onclick="setMood('😐', this)">😐</button>
@@ -72,11 +78,17 @@
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+        tg.headerColor = '#f0f2f5'; // Цвет шапки в тон карты
 
         const _supabase = supabase.createClient('https://efomfhxtzqixmtykbekr.supabase.co', 'sb_publishable_Q4jqU-sJWZloPAEcgs7TpA_fLA_NnIZ');
 
         const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20, 0], 2);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+        
+        // СВЕТЛАЯ КАРТА (Positron)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
 
         let myPos = { lat: 0, lng: 0 }, currentMood = '😐', isMeasuring = false, myMarker = null;
         let userId = tg.initDataUnsafe.user?.id || Date.now();
@@ -122,18 +134,18 @@
             document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected-mood'));
             el.classList.add('selected-mood');
             tg.HapticFeedback.impactOccurred('medium');
-            updateMyMarker(); // Мгновенная перерисовка на карте
-            sendData(); // Отправка в базу
+            updateMyMarker(); 
+            sendData(); 
         }
 
         function updateMyMarker() {
             if (myPos.lat === 0) return;
             const iconHtml = `
-                <div class="nexus-marker" style="filter: drop-shadow(0 0 8px #ff4d4d);">
-                    ${userPhoto ? `<img src="${userPhoto}" class="avatar-img">` : `<div class="avatar-img" style="background:#ff4d4d; color:white; font-size:12px; line-height:32px;">${userName[0]}</div>`}
+                <div class="nexus-marker">
+                    ${userPhoto ? `<img src="${userPhoto}" class="avatar-img" style="border-color: #007bff;">` : `<div class="avatar-img" style="background:#007bff; color:white; font-size:12px; line-height:34px; border-color: #007bff;">${userName[0]}</div>`}
                     <span class="mood-emoji">${currentMood}</span>
                 </div>`;
-            const icon = L.divIcon({ className: 'custom-div-icon', html: iconHtml, iconSize: [40, 50] });
+            const icon = L.divIcon({ className: 'custom-div-icon', html: iconHtml, iconSize: [40, 55] });
 
             if (!myMarker) {
                 myMarker = L.marker([myPos.lat, myPos.lng], { icon, zIndexOffset: 1000 }).addTo(map);
@@ -146,7 +158,7 @@
         function renderOtherOnMap(p) {
             const iconHtml = `
                 <div class="nexus-marker">
-                    ${p.user_photo ? `<img src="${p.user_photo}" class="avatar-img" style="border-color:#555;">` : `<div class="avatar-img" style="background:#333; color:white; font-size:10px; line-height:30px;">${p.user_name[0]}</div>`}
+                    ${p.user_photo ? `<img src="${p.user_photo}" class="avatar-img" style="border-color:#ccc;">` : `<div class="avatar-img" style="background:#ddd; color:#888; font-size:10px; line-height:32px;">${p.user_name[0]}</div>`}
                     <span class="mood-emoji">${p.mood}</span>
                 </div>`;
             const icon = L.divIcon({ className: 'custom-div-icon', html: iconHtml, iconSize: [40, 50] });
@@ -177,7 +189,7 @@
         document.getElementById('pulse-btn').onclick = function() {
             if (!isMeasuring) {
                 this.innerText = "🛑 ОСТАНОВИТЬ";
-                this.style.background = "#333";
+                this.style.background = "#555";
                 video.style.display = 'block';
                 document.getElementById('instruction').style.display = 'block';
                 startSensor();
@@ -203,13 +215,13 @@
             if (r > 18500) { 
                 document.getElementById('status').innerText = "❤️";
                 document.getElementById('instruction').innerText = "Пульс фиксируется...";
-                document.getElementById('instruction').style.color = "#00ff00";
+                document.getElementById('instruction').style.color = "#28a745";
                 sendData();
                 tg.HapticFeedback.impactOccurred('light');
             } else {
                 document.getElementById('status').innerText = "";
                 document.getElementById('instruction').innerText = "⚠️ Прижми палец плотнее к камере";
-                document.getElementById('instruction').style.color = "#ffbc00";
+                document.getElementById('instruction').style.color = "#d97706";
             }
             setTimeout(() => requestAnimationFrame(loop), 1200);
         }
