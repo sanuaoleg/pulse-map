@@ -12,7 +12,7 @@
         #ui { position: absolute; bottom: 20px; left: 0; right: 0; z-index: 10; text-align: center; pointer-events: none; }
         
         .panel { 
-            pointer-events: auto; background: rgba(255,255,255,0.92); 
+            pointer-events: auto; background: rgba(255,255,255,0.94); 
             padding: 12px; border-radius: 20px; border: 1px solid #ddd; 
             width: 90%; margin: 0 auto 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); backdrop-filter: blur(10px);
         }
@@ -21,19 +21,19 @@
         
         #instruction { color: #d97706; font-size: 13px; font-weight: bold; margin-bottom: 10px; display: none; }
 
-        .mood-btn { font-size: 24px; background: none; border: 2px solid transparent; cursor: pointer; border-radius: 12px; opacity: 0.3; transition: 0.2s; }
-        .mood-btn.active { opacity: 1; border-color: #007bff; }
+        .mood-btn { font-size: 24px; background: none; border: 2px solid transparent; cursor: pointer; border-radius: 12px; opacity: 0.3; transition: 0.2s; padding: 5px; }
+        .mood-btn.active { opacity: 1; border-color: #007bff; background: #fff; }
         
-        .range-slider { width: 100%; accent-color: #007bff; }
-        .btn { padding: 15px; border-radius: 30px; border: none; font-weight: bold; width: 85%; pointer-events: auto; margin: 5px auto; display: block; }
-        #pulse-btn { background: #ff4d4d; color: white; display: none; }
+        .range-slider { width: 100%; accent-color: #007bff; margin: 8px 0; }
+        .btn { padding: 15px; border-radius: 30px; border: none; font-weight: bold; width: 85%; pointer-events: auto; margin: 5px auto; display: block; font-size: 14px; }
+        #pulse-btn { background: #ff4d4d; color: white; display: none; box-shadow: 0 4px 10px rgba(255,77,77,0.3); }
         #start-btn { background: #007bff; color: white; }
 
         .nexus-marker { text-align: center; }
-        /* Убрана обводка аватаров */
-        .avatar-img { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; }
-        .label { font-size: 10px; font-weight: bold; background: rgba(255,255,255,0.8); border-radius: 4px; padding: 1px 4px; }
-        .stats-text { font-size: 10px; color: #777; margin-top: 5px; display: flex; justify-content: space-around; }
+        /* Аватары БЕЗ окантовки */
+        .avatar-img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .label { font-size: 10px; font-weight: bold; background: rgba(255,255,255,0.85); border-radius: 4px; padding: 1px 4px; display: inline-block; margin-top: 2px; }
+        .stats-text { font-size: 10px; color: #777; margin-top: 8px; display: flex; justify-content: space-around; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -41,7 +41,7 @@
         <div style="font-size: 10px; color: #666; font-weight: bold;">ВИДИМОСТЬ: <span id="radius-val">1000</span>м</div>
         <input type="range" min="100" max="5000" value="1000" class="range-slider" id="radius-range">
         
-        <div style="font-size: 10px; color: #888; margin: 8px 0 4px; font-weight: bold; letter-spacing: 0.5px;">ФИЛЬТР ПО НАСТРОЕНИЯМ</div>
+        <div style="font-size: 10px; color: #888; margin: 5px 0; font-weight: bold;">ФИЛЬТР ПО НАСТРОЕНИЯМ</div>
         <div id="mood-filters" style="display: flex; justify-content: space-around;">
             <button class="mood-btn active" data-mood="☀️">☀️</button>
             <button class="mood-btn active" data-mood="😐">😐</button>
@@ -53,17 +53,17 @@
     <div id="map"></div>
 
     <div id="ui">
-        <div id="instruction">⚠️ ПРИЖМИ ПАЛЕЦ К КАМЕРЕ</div>
+        <div id="instruction">⚠️ ПЛОТНО ПРИЖМИ ПАЛЕЦ К КАМЕРЕ</div>
         <video id="preview" style="width: 60px; height: 60px; border-radius: 50%; display: none; margin: 0 auto 10px; object-fit: cover; pointer-events: auto;"></video>
         <div id="status" style="font-size: 30px; height: 40px;"></div>
         
         <div id="main-panel" class="panel" style="display:none;">
-            <div style="font-size: 10px; color: #888; margin-bottom: 5px; font-weight: bold;">ВАШЕ НАСТРОЕНИЕ</div>
+            <div style="font-size: 10px; color: #888; margin-bottom: 8px; font-weight: bold;">ВАШЕ НАСТРОЕНИЕ</div>
             <div id="mood-selector" style="display: flex; justify-content: center; gap: 15px;">
-                <span id="sel-☀️" style="font-size:28px; cursor:pointer; opacity:0.4;" onclick="selectMood('☀️')">☀️</span>
-                <span id="sel-😐" style="font-size:28px; cursor:pointer;" onclick="selectMood('😐')">😐</span>
-                <span id="sel-🌧️" style="font-size:28px; cursor:pointer; opacity:0.4;" onclick="selectMood('🌧️')">🌧️</span>
-                <span id="sel-⚡" style="font-size:28px; cursor:pointer; opacity:0.4;" onclick="selectMood('⚡')">⚡</span>
+                <span id="sel-☀️" style="font-size:32px; cursor:pointer; opacity:0.3;" onclick="selectMood('☀️')">☀️</span>
+                <span id="sel-😐" style="font-size:32px; cursor:pointer;" onclick="selectMood('😐')">😐</span>
+                <span id="sel-🌧️" style="font-size:32px; cursor:pointer; opacity:0.3;" onclick="selectMood('🌧️')">🌧️</span>
+                <span id="sel-⚡" style="font-size:32px; cursor:pointer; opacity:0.3;" onclick="selectMood('⚡')">⚡</span>
             </div>
             <div class="stats-text" id="stats-display">
                 <span id="p-☀️">☀️ 0%</span> <span id="p-😐">😐 0%</span> <span id="p-🌧️">🌧️ 0%</span> <span id="p-⚡">⚡ 0%</span>
@@ -85,8 +85,8 @@
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
 
         let myPos = { lat: 0, lng: 0 }, myMarker, markers = [], activeMoods = ['☀️', '😐', '🌧️', '⚡'], currentMood = '😐';
-        let userId = tg.initDataUnsafe.user?.id || Date.now();
-        let friendId = tg.initDataUnsafe.start_param || null;
+        let userId = String(tg.initDataUnsafe.user?.id || Date.now());
+        let friendId = tg.initDataUnsafe.start_param ? String(tg.initDataUnsafe.start_param) : null;
 
         document.getElementById('radius-range').oninput = function() {
             document.getElementById('radius-val').innerText = this.value;
@@ -103,9 +103,9 @@
 
         function selectMood(m) {
             currentMood = m;
-            ['☀️','😐','🌧️','⚡'].forEach(emo => document.getElementById('sel-'+emo).style.opacity = (emo === m ? '1' : '0.4'));
+            ['☀️','😐','🌧️','⚡'].forEach(emo => document.getElementById('sel-'+emo).style.opacity = (emo === m ? '1' : '0.3'));
             updateMyMarker();
-            sendPulseData();
+            sendPulseData(); // Обновляем в базе сразу
         }
 
         document.getElementById('start-btn').onclick = function() {
@@ -122,6 +122,8 @@
 
         async function loadAllUsers() {
             const { data } = await _supabase.from('pulses').select('*').gt('created_at', new Date(Date.now() - 6 * 3600000).toISOString());
+            
+            // Чистим старые маркеры перед отрисовкой
             markers.forEach(m => map.removeLayer(m));
             markers = [];
             
@@ -129,7 +131,8 @@
                 const counts = { '☀️':0, '😐':0, '🌧️':0, '⚡':0 };
                 data.forEach(p => {
                     counts[p.mood]++;
-                    if (p.user_id != userId && activeMoods.includes(p.mood)) {
+                    // Проверка: не я ли это, и включен ли этот тип настроения в фильтре
+                    if (String(p.user_id) !== userId && activeMoods.includes(p.mood)) {
                         const dist = getDistance(myPos.lat, myPos.lng, p.lat, p.lng);
                         if (dist <= document.getElementById('radius-range').value) renderUser(p);
                     }
@@ -146,13 +149,13 @@
         }
 
         function renderUser(p) {
-            const isFriend = (p.user_id == friendId || p.friend_id == userId);
+            const isFriend = (String(p.user_id) === friendId || String(p.friend_id) === userId);
             const iconHtml = `<div class="nexus-marker">
                 <img src="${isFriend && p.user_photo ? p.user_photo : 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="avatar-img">
                 <div class="label">${isFriend ? p.user_name : 'Ghost'}</div>
                 <div style="font-size:18px;">${p.mood}</div>
             </div>`;
-            const m = L.marker([p.lat, p.lng], { icon: L.divIcon({ className: 'c', html: iconHtml, iconSize: [40, 60] }) }).addTo(map);
+            const m = L.marker([p.lat, p.lng], { icon: L.divIcon({ className: 'c', html: iconHtml, iconSize: [40, 65] }) }).addTo(map);
             markers.push(m);
         }
 
@@ -166,12 +169,12 @@
 
         function updateMyMarker() {
             const photo = tg.initDataUnsafe.user?.photo_url || '';
-            const iconHtml = `<div class="nexus-marker"><img src="${photo}" class="avatar-img"><div class="label">Вы</div><div style="font-size:20px;">${currentMood}</div></div>`;
-            if (!myMarker) myMarker = L.marker([myPos.lat, myPos.lng], { zIndexOffset: 1000, icon: L.divIcon({ html: iconHtml, iconSize: [40, 60] }) }).addTo(map);
-            else { myMarker.setLatLng([myPos.lat, myPos.lng]); myMarker.setIcon(L.divIcon({ html: iconHtml, iconSize: [40, 60] })); }
+            const iconHtml = `<div class="nexus-marker"><img src="${photo}" class="avatar-img" style="box-shadow: 0 0 10px rgba(0,123,255,0.4);"><div class="label">Вы</div><div style="font-size:22px;">${currentMood}</div></div>`;
+            if (!myMarker) myMarker = L.marker([myPos.lat, myPos.lng], { zIndexOffset: 1000, icon: L.divIcon({ html: iconHtml, iconSize: [40, 65] }) }).addTo(map);
+            else { myMarker.setLatLng([myPos.lat, myPos.lng]); myMarker.setIcon(L.divIcon({ html: iconHtml, iconSize: [40, 65] })); }
         }
 
-        // Замер пульса
+        // ПУЛЬС
         let isMeasuring = false;
         const video = document.getElementById('preview');
         const canvas = document.createElement('canvas');
@@ -199,7 +202,7 @@
             let r = 0, g = 0;
             for (let i = 0; i < data.length; i += 4) { r += data[i]; g += data[i+1]; }
 
-            if (r > 18000 && r > g * 1.5) { 
+            if (r > 18000 && r > g * 1.6) { 
                 document.getElementById('instruction').innerText = "Пульс фиксируется...";
                 document.getElementById('instruction').style.color = "#28a745";
                 sendPulseData();
@@ -213,11 +216,16 @@
 
         async function sendPulseData() {
             if (myPos.lat === 0) return;
+            // Используем UPSERT (обязательно добавьте Unique Constraint на user_id в Supabase!)
             await _supabase.from('pulses').upsert([{ 
-                user_id: userId, lat: myPos.lat, lng: myPos.lng, 
+                user_id: userId, 
+                lat: myPos.lat, 
+                lng: myPos.lng, 
                 user_name: tg.initDataUnsafe.user?.first_name || "Ghost", 
                 user_photo: tg.initDataUnsafe.user?.photo_url || "",
-                mood: currentMood, friend_id: friendId
+                mood: currentMood, 
+                friend_id: friendId,
+                created_at: new Date().toISOString()
             }], { onConflict: 'user_id' });
         }
 
