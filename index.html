@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Nexus Pulse</title>
+    <title>Nexus Pulse: Realtime</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
@@ -28,9 +28,9 @@
         #pulse-btn { background: #ff4d4d; color: white; display: none; box-shadow: 0 4px 10px rgba(255,77,77,0.3); }
         #start-btn { background: #007bff; color: white; }
 
-        .nexus-marker { text-align: center; }
+        .nexus-marker { text-align: center; transition: all 0.5s ease-in-out; }
         .avatar-img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: none; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
-        .label { font-size: 10px; font-weight: bold; background: rgba(255,255,255,0.85); border-radius: 4px; padding: 1px 4px; display: inline-block; margin-top: 2px; }
+        .label { font-size: 10px; font-weight: bold; border-radius: 4px; padding: 1px 5px; display: inline-block; margin-top: 2px; }
         .stats-text { font-size: 10px; color: #777; margin-top: 8px; display: flex; justify-content: space-around; font-weight: bold; }
     </style>
 </head>
@@ -82,9 +82,43 @@
         const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([0,0], 2);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-        let myPos = { lat: 0, lng: 0 }, myMarker, markers = [], activeMoods = ['☀️', '😐', '🌧️', '⚡'], currentMood = '😐';
+        let myPos = { lat: 0, lng: 0 }, myMarker, markersMap = {}, activeMoods = ['☀️', '😐', '🌧️', '⚡'], currentMood = '😐';
         let userId = String(tg.initDataUnsafe.user?.id || Date.now());
         let friendId = tg.initDataUnsafe.start_param ? String(tg.initDataUnsafe.start_param) : null;
+
+        // Инициализация Realtime
+        const channel = _supabase.channel('public:pulses')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'pulses' }, (payload) => {
+                handleRealtimeUpdate(payload);
+            })
+            .subscribe();
+
+        function handleRealtimeUpdate(payload) {
+            const data = payload.new || payload.old;
+            if (!data || String(data.user_id) === userId) return;
+
+            // Если это удаление или старая точка
+            if (payload.eventType === 'DELETE') {
+                removeMarker(data.user_id);
+                return;
+            }
+
+            // Проверяем фильтры (радиус и настроение)
+            const dist = getDistance(myPos.lat, myPos.lng, data.lat, data.lng);
+            if (activeMoods.includes(data.mood) && dist <= document.getElementById('radius-range').value) {
+                renderUser(data);
+            } else {
+                removeMarker(data.user_id);
+            }
+            updateStatsGlobal();
+        }
+
+        function removeMarker(id) {
+            if (markersMap[id]) {
+                map.removeLayer(markersMap[id]);
+                delete markersMap[id];
+            }
+        }
 
         document.getElementById('radius-range').oninput = function() {
             document.getElementById('radius-val').innerText = this.value;
@@ -119,24 +153,32 @@
         };
 
         async function loadAllUsers() {
-            const { data } = await _supabase.from('pulses').select('*').gt('created_at', new Date(Date.now() - 6 * 3600000).toISOString());
-            markers.forEach(m => map.removeLayer(m));
-            markers = [];
+            const { data } = await _supabase.from('pulses').select('*').gt('created_at', new Date(Date.now() - 24 * 3600000).toISOString());
+            
+            // Чистим текущие маркеры перед массовой загрузкой
+            Object.keys(markersMap).forEach(id => removeMarker(id));
+            
             if (data) {
-                const counts = { '☀️':0, '😐':0, '🌧️':0, '⚡':0 };
                 data.forEach(p => {
-                    counts[p.mood]++;
                     if (String(p.user_id) !== userId && activeMoods.includes(p.mood)) {
                         const dist = getDistance(myPos.lat, myPos.lng, p.lat, p.lng);
                         if (dist <= document.getElementById('radius-range').value) renderUser(p);
                     }
                 });
-                updateStatsUI(counts, data.length);
+                updateStatsGlobal(data);
             }
         }
 
-        function updateStatsUI(counts, total) {
-            total = total || 1;
+        async function updateStatsGlobal(existingData) {
+            let data = existingData;
+            if (!data) {
+                const res = await _supabase.from('pulses').select('mood');
+                data = res.data;
+            }
+            if (!data) return;
+            const counts = { '☀️':0, '😐':0, '🌧️':0, '⚡':0 };
+            data.forEach(p => counts[p.mood]++);
+            const total = data.length || 1;
             Object.keys(counts).forEach(m => {
                 document.getElementById('p-'+m).innerText = `${m} ${Math.round(counts[m]/total*100)}%`;
             });
@@ -149,8 +191,16 @@
                 <div class="label" style="background:${isFriend ? 'rgba(0,123,255,0.9)' : 'rgba(255,255,255,0.85)'}; color:${isFriend ? 'white' : 'black'};">${isFriend ? p.user_name : 'Ghost'}</div>
                 <div style="font-size:18px;">${p.mood}</div>
             </div>`;
-            const m = L.marker([p.lat, p.lng], { icon: L.divIcon({ className: 'c', html: iconHtml, iconSize: [40, 65] }) }).addTo(map);
-            markers.push(m);
+            
+            const icon = L.divIcon({ className: 'c', html: iconHtml, iconSize: [40, 65] });
+
+            if (markersMap[p.user_id]) {
+                markersMap[p.user_id].setLatLng([p.lat, p.lng]);
+                markersMap[p.user_id].setIcon(icon);
+            } else {
+                const m = L.marker([p.lat, p.lng], { icon: icon }).addTo(map);
+                markersMap[p.user_id] = m;
+            }
         }
 
         function getDistance(lat1, lon1, lat2, lon2) {
@@ -164,8 +214,9 @@
         function updateMyMarker() {
             const photo = tg.initDataUnsafe.user?.photo_url || '';
             const iconHtml = `<div class="nexus-marker"><img src="${photo}" class="avatar-img" style="box-shadow: 0 0 12px rgba(0,123,255,0.5);"><div class="label">Вы</div><div style="font-size:22px;">${currentMood}</div></div>`;
-            if (!myMarker) myMarker = L.marker([myPos.lat, myPos.lng], { zIndexOffset: 1000, icon: L.divIcon({ html: iconHtml, iconSize: [40, 65] }) }).addTo(map);
-            else { myMarker.setLatLng([myPos.lat, myPos.lng]); myMarker.setIcon(L.divIcon({ html: iconHtml, iconSize: [40, 65] })); }
+            const icon = L.divIcon({ html: iconHtml, iconSize: [40, 65] });
+            if (!myMarker) myMarker = L.marker([myPos.lat, myPos.lng], { zIndexOffset: 1000, icon: icon }).addTo(map);
+            else { myMarker.setLatLng([myPos.lat, myPos.lng]); myMarker.setIcon(icon); }
         }
 
         let isMeasuring = false;
