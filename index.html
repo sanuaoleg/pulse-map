@@ -3,58 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Ghost-Checker</title>
+    <title>Ghost-Checker: Friends Edition</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { margin: 0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
-        #map { height: 100vh; width: 100vw; position: absolute; z-index: 1; filter: grayscale(0.2) brightness(0.7); }
-        
-        /* Слой UI теперь не блокирует клики */
+        #map { height: 100vh; width: 100vw; position: absolute; z-index: 1; filter: grayscale(0.2) brightness(0.6); }
         #ui { position: absolute; bottom: 30px; left: 0; right: 0; z-index: 10; text-align: center; pointer-events: none; }
         
-        /* Кнопки явно разрешают клики */
-        .btn { 
-            padding: 18px 25px; 
-            border-radius: 35px; 
-            border: none; 
-            cursor: pointer; 
-            font-weight: bold; 
-            margin: 8px auto; 
-            display: block;
-            width: 85%;
-            pointer-events: auto; 
-            transition: transform 0.1s;
+        /* Уведомление о синхронизации */
+        #sync-alert { 
+            position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%); 
+            background: rgba(255, 0, 0, 0.9); color: white; padding: 20px; border-radius: 20px; 
+            z-index: 100; display: none; text-align: center; width: 80%; box-shadow: 0 0 30px red;
+            pointer-events: auto; font-weight: bold;
         }
-        .btn:active { transform: scale(0.95); }
+
+        .btn { padding: 18px 25px; border-radius: 35px; border: none; cursor: pointer; font-weight: bold; margin: 8px auto; display: block; width: 85%; pointer-events: auto; }
+        #start-btn { background: #ff4d4d; color: white; }
+        #share-btn { background: rgba(255,255,255,0.15); color: white; border: 1px solid #fff; }
         
-        #start-btn { background: #ff4d4d; color: white; box-shadow: 0 0 25px rgba(255,0,0,0.5); font-size: 18px; }
-        #share-btn { background: rgba(255,255,255,0.15); color: white; border: 1px solid #fff; font-size: 14px; }
-        
-        video { width: 80px; height: 80px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; display: none; margin: 0 auto 15px; background: #222; pointer-events: auto; }
-        
-        #mood-selector { display: none; margin-bottom: 20px; pointer-events: auto; background: rgba(0,0,0,0.85); padding: 12px; border-radius: 30px; border: 1px solid #333; width: fit-content; margin-left: auto; margin-right: auto; }
+        video { width: 80px; height: 80px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; display: none; margin: 0 auto 15px; pointer-events: auto; }
+        #mood-selector { display: none; margin-bottom: 20px; pointer-events: auto; background: rgba(0,0,0,0.85); padding: 12px; border-radius: 30px; margin: 0 auto 20px; width: fit-content; }
         .mood-btn { font-size: 30px; background: none; border: none; cursor: pointer; margin: 0 12px; }
         .selected-mood { border-bottom: 3px solid red; }
-
         .pulse-marker { background: rgba(255, 0, 0, 0.9); border-radius: 50%; box-shadow: 0 0 15px red; }
     </style>
 </head>
 <body>
+    <div id="sync-alert"></div>
     <div id="map"></div>
     <div id="ui">
         <div id="status" style="font-size: 40px; height: 50px; text-shadow: 0 0 10px red;"></div>
         <video id="preview" autoplay playsinline></video>
-        
         <div id="mood-selector">
             <button class="mood-btn" onclick="setMood('☀️', this)">☀️</button>
             <button class="mood-btn selected-mood" onclick="setMood('😐', this)">😐</button>
             <button class="mood-btn" onclick="setMood('🌧️', this)">🌧️</button>
             <button class="mood-btn" onclick="setMood('⚡', this)">⚡</button>
         </div>
-
         <button id="start-btn" class="btn">ВОЙТИ В ЗЕРКАЛО</button>
-        <button id="share-btn" class="btn">👥 Узнать пульс друзей</button>
+        <button id="share-btn" class="btn">👥 Позвать друзей</button>
     </div>
     <canvas id="analyzer" width="10" height="10" style="display:none"></canvas>
 
@@ -62,9 +51,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // Инициализация Telegram
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Развернуть на весь экран
+        tg.expand();
 
         const SUPABASE_URL = 'https://efomfhxtzqixmtykbekr.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_Q4jqU-sJWZloPAEcgs7TpA_fLA_NnIZ'; 
@@ -75,30 +63,27 @@
 
         let myPos = { lat: 0, lng: 0 };
         let currentMood = '😐';
-        let userId = tg.initDataUnsafe.user?.id || 'guest';
+        let userId = tg.initDataUnsafe.user?.id || Date.now();
+        let userName = tg.initDataUnsafe.user?.first_name || "Друг";
+        
+        // Получаем ID друга из ссылки (t.me/bot/app?startapp=12345)
+        let friendId = tg.initDataUnsafe.start_param || null;
 
-        // 1. Обработка клика "ВОЙТИ"
-        document.getElementById('start-btn').addEventListener('click', function() {
-            console.log("Кнопка старт нажата");
+        document.getElementById('start-btn').onclick = function() {
             this.style.display = 'none';
             document.getElementById('preview').style.display = 'block';
             document.getElementById('mood-selector').style.display = 'flex';
-            
-            // Запрос геопозиции
             navigator.geolocation.getCurrentPosition(p => {
                 myPos = { lat: p.coords.latitude, lng: p.coords.longitude };
                 map.setView([myPos.lat, myPos.lng], 15);
-            }, (err) => {
-                alert("Пожалуйста, включи GPS для работы зеркала");
-            }, { enableHighAccuracy: true });
-            
+            }, null, { enableHighAccuracy: true });
             startSensor();
-        });
+        };
 
-        // 2. Приглашение
         document.getElementById('share-btn').onclick = () => {
-            const url = "https://t.me/PulseMapTestBot/app";
-            tg.openTelegramLink(`https://t.me/share/url?url=${url}&text=${encodeURIComponent("Мой пульс в Зеркале Реальности. А твой?")}`);
+            // ВАЖНО: Добавляем твой ID в ссылку
+            const url = `https://t.me/PulseMapTestBot/app?startapp=${userId}`;
+            tg.openTelegramLink(`https://t.me/share/url?url=${url}&text=${encodeURIComponent("Замерь пульс одновременно со мной!")}`);
         };
 
         function setMood(mood, el) {
@@ -108,14 +93,28 @@
             tg.HapticFeedback.impactOccurred('medium');
         }
 
-        // Realtime
+        // Подписка на пульс
         _supabase.channel('public:pulses').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pulses' }, payload => {
             const p = payload.new;
             renderPulse(p.lat, p.lng);
-            if (p.user_id != userId && myPos.lat !== 0) {
+
+            // ПРОВЕРКА СИНХРОНИЗАЦИИ С ДРУГОМ
+            const isFriend = (p.user_id == friendId || p.friend_id == userId);
+            const isNow = Math.abs(Date.now() - new Date(p.created_at).getTime()) < 1500;
+
+            if (isFriend && isNow && p.user_id != userId) {
+                showSyncAlert(p.user_name || "Твой друг");
                 drawSyncLine(myPos, { lat: p.lat, lng: p.lng });
             }
         }).subscribe();
+
+        function showSyncAlert(name) {
+            const alertBox = document.getElementById('sync-alert');
+            alertBox.innerHTML = `❤️ СИНХРОНИЗАЦИЯ!<br>Вы с ${name} имеете одинаковый пульс!`;
+            alertBox.style.display = 'block';
+            tg.HapticFeedback.notificationOccurred('success');
+            setTimeout(() => { alertBox.style.display = 'none'; }, 5000);
+        }
 
         function renderPulse(lat, lng) {
             const icon = L.divIcon({ className: 'pulse-marker', iconSize: [12, 12] });
@@ -128,8 +127,8 @@
         }
 
         function drawSyncLine(p1, p2) {
-            const line = L.polyline([[p1.lat, p1.lng], [p2.lat, p2.lng]], { color: '#ff4d4d', weight: 1, opacity: 0.5, dashArray: '5, 10' }).addTo(map);
-            setTimeout(() => map.removeLayer(line), 2500);
+            const line = L.polyline([[p1.lat, p1.lng], [p2.lat, p2.lng]], { color: '#ff4d4d', weight: 2, opacity: 0.8 }).addTo(map);
+            setTimeout(() => map.removeLayer(line), 3000);
         }
 
         const video = document.getElementById('preview');
@@ -137,13 +136,9 @@
         let lastSend = 0;
 
         async function startSensor() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                video.srcObject = stream;
-                loop();
-            } catch (e) {
-                alert("Ошибка камеры: " + e.message);
-            }
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            video.srcObject = stream;
+            loop();
         }
 
         function loop() {
@@ -153,7 +148,7 @@
 
             if (r > 19000) {
                 document.getElementById('status').innerText = "❤️";
-                if (Date.now() - lastSend > 900) {
+                if (Date.now() - lastSend > 1000) {
                     sendData();
                     tg.HapticFeedback.impactOccurred('light');
                     lastSend = Date.now();
@@ -167,7 +162,9 @@
             const tz = new Date().getTimezoneOffset() / -60;
             await _supabase.from('pulses').insert([{ 
                 lat: myPos.lat, lng: myPos.lng, bpm: 75, 
-                user_id: userId, timezone: tz, mood: currentMood 
+                user_id: userId, user_name: userName, 
+                friend_id: friendId, // Записываем, чью ссылку мы открыли
+                timezone: tz, mood: currentMood 
             }]);
         }
     </script>
