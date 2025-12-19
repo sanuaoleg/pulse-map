@@ -3,54 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Ghost-Checker: Mood Map</title>
+    <title>Ghost-Checker: Nexus</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { margin: 0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
         #map { height: 100vh; width: 100vw; position: absolute; z-index: 1; filter: grayscale(0.2) brightness(0.6); }
-        
         #ui { position: absolute; bottom: 30px; left: 0; right: 0; z-index: 10; text-align: center; pointer-events: none; }
         
+        #sync-alert { 
+            position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%); 
+            background: rgba(255, 0, 0, 0.9); color: white; padding: 20px; border-radius: 20px; 
+            z-index: 100; display: none; text-align: center; width: 80%; box-shadow: 0 0 30px red;
+            pointer-events: auto; font-weight: bold;
+        }
+
         #mood-container { 
-            display: none; 
-            margin-bottom: 20px; 
-            pointer-events: auto; 
-            background: rgba(0,0,0,0.85); 
-            padding: 15px; 
-            border-radius: 30px; 
-            border: 1px solid #333; 
-            width: fit-content; 
-            margin-left: auto; 
-            margin-right: auto; 
+            display: none; margin-bottom: 20px; pointer-events: auto; 
+            background: rgba(0,0,0,0.85); padding: 15px; border-radius: 30px; 
+            border: 1px solid #333; width: fit-content; margin: 0 auto 20px; 
         }
         #mood-title { font-size: 14px; margin-bottom: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
-        .mood-btn { font-size: 32px; background: none; border: none; cursor: pointer; margin: 0 10px; transition: transform 0.2s; }
-        .selected-mood { transform: scale(1.3); filter: drop-shadow(0 0 10px red); }
-
+        
         .btn { padding: 18px 25px; border-radius: 35px; border: none; cursor: pointer; font-weight: bold; margin: 8px auto; display: block; width: 85%; pointer-events: auto; }
-        #start-btn { background: #ff4d4d; color: white; }
+        #start-btn { background: #ff4d4d; color: white; box-shadow: 0 0 20px rgba(255,0,0,0.5); }
         #share-btn { background: rgba(255,255,255,0.15); color: white; border: 1px solid #fff; }
         
         video { width: 80px; height: 80px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; display: none; margin: 0 auto 15px; pointer-events: auto; }
-        
-        /* Стиль для долгоживущей точки настроения */
-        .mood-marker { 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            background: rgba(255, 77, 77, 0.2); 
-            border: 1px solid rgba(255, 77, 77, 0.5); 
-            border-radius: 50%; 
-            font-size: 16px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-        }
+        .mood-btn { font-size: 32px; background: none; border: none; cursor: pointer; margin: 0 10px; transition: transform 0.2s; }
+        .selected-mood { transform: scale(1.3); filter: drop-shadow(0 0 10px red); }
+        .mood-marker { display: flex; align-items: center; justify-content: center; background: rgba(255, 77, 77, 0.2); border: 1px solid rgba(255, 77, 77, 0.5); border-radius: 50%; font-size: 20px; }
     </style>
 </head>
 <body>
+    <div id="sync-alert"></div>
     <div id="map"></div>
     <div id="ui">
-        <div id="status" style="font-size: 40px; height: 50px;"></div>
+        <div id="status" style="font-size: 40px; height: 50px; text-shadow: 0 0 10px red;"></div>
         <video id="preview" autoplay playsinline></video>
         
         <div id="mood-container">
@@ -74,9 +63,7 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        const SUPABASE_URL = 'https://efomfhxtzqixmtykbekr.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_Q4jqU-sJWZloPAEcgs7TpA_fLA_NnIZ'; 
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const _supabase = supabase.createClient('https://efomfhxtzqixmtykbekr.supabase.co', 'sb_publishable_Q4jqU-sJWZloPAEcgs7TpA_fLA_NnIZ');
 
         const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20, 0], 2);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
@@ -84,7 +71,9 @@
         let myPos = { lat: 0, lng: 0 };
         let currentMood = '😐';
         let userId = tg.initDataUnsafe.user?.id || Date.now();
-        
+        let userName = tg.initDataUnsafe.user?.first_name || "Друг";
+        let friendId = tg.initDataUnsafe.start_param || null;
+
         document.getElementById('start-btn').onclick = function() {
             this.style.display = 'none';
             document.getElementById('preview').style.display = 'block';
@@ -101,35 +90,44 @@
             document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected-mood'));
             el.classList.add('selected-mood');
             tg.HapticFeedback.impactOccurred('medium');
-            sendData(); // Отправляем обновление сразу при смене настроения
+            sendData();
         }
 
-        // Подписка на изменения (Realtime)
         _supabase.channel('public:pulses').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pulses' }, payload => {
             const p = payload.new;
             renderMoodOnMap(p.lat, p.lng, p.mood);
+            
+            const isFriend = (p.user_id == friendId || p.friend_id == userId);
+            const isNow = Math.abs(Date.now() - new Date(p.created_at).getTime()) < 1500;
+
+            if (isFriend && isNow && p.user_id != userId && myPos.lat !== 0) {
+                showSyncAlert(p.user_name || "Друг");
+                drawSyncLine(myPos, { lat: p.lat, lng: p.lng });
+            }
         }).subscribe();
 
-        // Функция отрисовки настроения, которое "живет"
         function renderMoodOnMap(lat, lng, mood) {
-            const moodIcon = L.divIcon({ 
-                className: 'mood-marker', 
-                html: mood, 
-                iconSize: [30, 30] 
-            });
-            const marker = L.marker([lat, lng], { icon: moodIcon }).addTo(map);
-            
-            // Точка исчезнет через 6 часов (21600000 мс) визуально на карте для текущей сессии
-            // В реальности база очистится по SQL скрипту
-            setTimeout(() => {
-                map.removeLayer(marker);
-            }, 6 * 60 * 60 * 1000); 
+            const icon = L.divIcon({ className: 'mood-marker', html: mood, iconSize: [30, 30] });
+            const marker = L.marker([lat, lng], { icon }).addTo(map);
+            setTimeout(() => map.removeLayer(marker), 6 * 60 * 60 * 1000); 
         }
 
-        // Кнопка Позвать друзей
+        function showSyncAlert(name) {
+            const alertBox = document.getElementById('sync-alert');
+            alertBox.innerHTML = `❤️ СИНХРОНИЗАЦИЯ!<br>Вы с ${name} на одной волне!`;
+            alertBox.style.display = 'block';
+            tg.HapticFeedback.notificationOccurred('success');
+            setTimeout(() => alertBox.style.display = 'none', 5000);
+        }
+
+        function drawSyncLine(p1, p2) {
+            const line = L.polyline([[p1.lat, p1.lng], [p2.lat, p2.lng]], { color: '#ff4d4d', weight: 2, opacity: 0.8 }).addTo(map);
+            setTimeout(() => map.removeLayer(line), 3000);
+        }
+
         document.getElementById('share-btn').onclick = () => {
             const url = `https://t.me/PulseMapTestBot/app?startapp=${userId}`;
-            tg.openTelegramLink(`https://t.me/share/url?url=${url}&text=${encodeURIComponent("Посмотри на мое настроение в Зеркале Реальности!")}`);
+            tg.openTelegramLink(`https://t.me/share/url?url=${url}&text=${encodeURIComponent("Посмотри на мое настроение в Зеркале!")}`);
         };
 
         const video = document.getElementById('preview');
@@ -144,15 +142,13 @@
         }
 
         function loop() {
-            if (video.paused || video.ended) return;
             canvas.width = 10; canvas.height = 10;
             ctx.drawImage(video, 0, 0, 10, 10);
             const data = ctx.getImageData(0, 0, 10, 10).data;
             let r = 0; for (let i = 0; i < data.length; i += 4) r += data[i];
-
             if (r > 19000) {
                 document.getElementById('status').innerText = "❤️";
-                if (Date.now() - lastSend > 2000) { // Для "настроения" шлем реже
+                if (Date.now() - lastSend > 2000) {
                     sendData();
                     tg.HapticFeedback.impactOccurred('light');
                     lastSend = Date.now();
@@ -165,8 +161,8 @@
             if (myPos.lat === 0) return;
             const tz = new Date().getTimezoneOffset() / -60;
             await _supabase.from('pulses').insert([{ 
-                lat: myPos.lat, lng: myPos.lng, bpm: 75, 
-                user_id: userId, timezone: tz, mood: currentMood 
+                lat: myPos.lat, lng: myPos.lng, bpm: 75, user_id: userId, 
+                user_name: userName, friend_id: friendId, timezone: tz, mood: currentMood 
             }]);
         }
     </script>
