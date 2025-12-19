@@ -19,29 +19,30 @@
 
         #filter-container { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 10; width: 90%; pointer-events: auto; }
         
-        #instruction { 
-            color: #d97706; font-size: 13px; font-weight: bold; margin-bottom: 10px; 
-            display: none; text-shadow: 0 1px 2px rgba(255,255,255,0.8);
-        }
+        #instruction { color: #d97706; font-size: 13px; font-weight: bold; margin-bottom: 10px; display: none; }
 
-        .mood-btn { font-size: 24px; background: none; border: 2px solid transparent; cursor: pointer; border-radius: 12px; transition: 0.2s; opacity: 0.4; }
-        .mood-btn.active { opacity: 1; border-color: #007bff; background: #fff; }
+        .mood-btn { font-size: 24px; background: none; border: 2px solid transparent; cursor: pointer; border-radius: 12px; opacity: 0.3; transition: 0.2s; }
+        .mood-btn.active { opacity: 1; border-color: #007bff; }
         
         .range-slider { width: 100%; accent-color: #007bff; }
-        .btn { padding: 15px; border-radius: 30px; border: none; font-weight: bold; width: 85%; pointer-events: auto; margin: 5px auto; display: block; font-size: 14px; }
-        #pulse-btn { background: #ff4d4d; color: white; display: none; box-shadow: 0 4px 10px rgba(255,77,77,0.3); }
+        .btn { padding: 15px; border-radius: 30px; border: none; font-weight: bold; width: 85%; pointer-events: auto; margin: 5px auto; display: block; }
+        #pulse-btn { background: #ff4d4d; color: white; display: none; }
         #start-btn { background: #007bff; color: white; }
 
         .nexus-marker { text-align: center; }
-        .avatar-img { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        .label { font-size: 10px; font-weight: bold; background: rgba(255,255,255,0.8); border-radius: 4px; padding: 1px 4px; display: inline-block; }
+        /* Убрана обводка аватаров */
+        .avatar-img { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; }
+        .label { font-size: 10px; font-weight: bold; background: rgba(255,255,255,0.8); border-radius: 4px; padding: 1px 4px; }
+        .stats-text { font-size: 10px; color: #777; margin-top: 5px; display: flex; justify-content: space-around; }
     </style>
 </head>
 <body>
     <div id="filter-container" class="panel">
-        <div style="font-size: 10px; color: #666;">ВИДИМОСТЬ: <span id="radius-val">1000</span>м</div>
+        <div style="font-size: 10px; color: #666; font-weight: bold;">ВИДИМОСТЬ: <span id="radius-val">1000</span>м</div>
         <input type="range" min="100" max="5000" value="1000" class="range-slider" id="radius-range">
-        <div id="mood-filters" style="display: flex; justify-content: space-around; margin-top: 8px;">
+        
+        <div style="font-size: 10px; color: #888; margin: 8px 0 4px; font-weight: bold; letter-spacing: 0.5px;">ФИЛЬТР ПО НАСТРОЕНИЯМ</div>
+        <div id="mood-filters" style="display: flex; justify-content: space-around;">
             <button class="mood-btn active" data-mood="☀️">☀️</button>
             <button class="mood-btn active" data-mood="😐">😐</button>
             <button class="mood-btn active" data-mood="🌧️">🌧️</button>
@@ -53,19 +54,22 @@
 
     <div id="ui">
         <div id="instruction">⚠️ ПРИЖМИ ПАЛЕЦ К КАМЕРЕ</div>
-        <video id="preview" style="width: 60px; height: 60px; border-radius: 50%; display: none; margin: 0 auto 10px; object-fit: cover; border: 2px solid #ff4d4d; pointer-events: auto;"></video>
+        <video id="preview" style="width: 60px; height: 60px; border-radius: 50%; display: none; margin: 0 auto 10px; object-fit: cover; pointer-events: auto;"></video>
         <div id="status" style="font-size: 30px; height: 40px;"></div>
         
         <div id="main-panel" class="panel" style="display:none;">
-            <div style="font-size: 10px; color: #888; margin-bottom: 5px;">ВАШЕ НАСТРОЕНИЕ</div>
-            <div id="mood-selector" style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;">
-                <span style="font-size:24px; cursor:pointer;" onclick="selectMood('☀️')">☀️</span>
-                <span style="font-size:24px; cursor:pointer;" onclick="selectMood('😐')">😐</span>
-                <span style="font-size:24px; cursor:pointer;" onclick="selectMood('🌧️')">🌧️</span>
-                <span style="font-size:24px; cursor:pointer;" onclick="selectMood('⚡')">⚡</span>
+            <div style="font-size: 10px; color: #888; margin-bottom: 5px; font-weight: bold;">ВАШЕ НАСТРОЕНИЕ</div>
+            <div id="mood-selector" style="display: flex; justify-content: center; gap: 15px;">
+                <span id="sel-☀️" style="font-size:28px; cursor:pointer; opacity:0.4;" onclick="selectMood('☀️')">☀️</span>
+                <span id="sel-😐" style="font-size:28px; cursor:pointer;" onclick="selectMood('😐')">😐</span>
+                <span id="sel-🌧️" style="font-size:28px; cursor:pointer; opacity:0.4;" onclick="selectMood('🌧️')">🌧️</span>
+                <span id="sel-⚡" style="font-size:28px; cursor:pointer; opacity:0.4;" onclick="selectMood('⚡')">⚡</span>
+            </div>
+            <div class="stats-text" id="stats-display">
+                <span id="p-☀️">☀️ 0%</span> <span id="p-😐">😐 0%</span> <span id="p-🌧️">🌧️ 0%</span> <span id="p-⚡">⚡ 0%</span>
             </div>
             <button id="pulse-btn" class="btn">❤️ ЗАМЕРИТЬ ПУЛЬС</button>
-            <button id="share-btn" class="btn" style="background:none; border: 1px solid #ddd; font-size: 12px; color: #666;">👥 ПОЗВАТЬ ДРУЗЕЙ</button>
+            <button id="share-btn" class="btn" style="background:none; border: 1px solid #ddd; font-size: 11px; color: #777; margin-top:10px;">👥 ПОЗВАТЬ ДРУЗЕЙ</button>
         </div>
         <button id="start-btn" class="btn">ВОЙТИ В NEXUS</button>
     </div>
@@ -84,65 +88,70 @@
         let userId = tg.initDataUnsafe.user?.id || Date.now();
         let friendId = tg.initDataUnsafe.start_param || null;
 
-        // Фильтрация
         document.getElementById('radius-range').oninput = function() {
             document.getElementById('radius-val').innerText = this.value;
-            refreshMarkers();
+            loadAllUsers();
         };
 
         document.querySelectorAll('.mood-btn').forEach(btn => {
             btn.onclick = function() {
                 this.classList.toggle('active');
                 activeMoods = Array.from(document.querySelectorAll('.mood-btn.active')).map(b => b.dataset.mood);
-                refreshMarkers();
+                loadAllUsers();
             };
         });
 
         function selectMood(m) {
             currentMood = m;
-            tg.HapticFeedback.impactOccurred('light');
+            ['☀️','😐','🌧️','⚡'].forEach(emo => document.getElementById('sel-'+emo).style.opacity = (emo === m ? '1' : '0.4'));
             updateMyMarker();
+            sendPulseData();
         }
 
         document.getElementById('start-btn').onclick = function() {
             this.style.display = 'none';
             document.getElementById('main-panel').style.display = 'block';
             document.getElementById('pulse-btn').style.display = 'block';
-            
             navigator.geolocation.watchPosition(p => {
                 myPos = { lat: p.coords.latitude, lng: p.coords.longitude };
                 if(!myMarker) map.setView([myPos.lat, myPos.lng], 15);
                 updateMyMarker();
-                refreshMarkers();
+                loadAllUsers();
             }, null, { enableHighAccuracy: true });
         };
 
-        async function refreshMarkers() {
-            const { data } = await _supabase.from('pulses')
-                .select('*')
-                .gt('created_at', new Date(Date.now() - 6 * 3600000).toISOString())
-                .in('mood', activeMoods);
-
+        async function loadAllUsers() {
+            const { data } = await _supabase.from('pulses').select('*').gt('created_at', new Date(Date.now() - 6 * 3600000).toISOString());
             markers.forEach(m => map.removeLayer(m));
             markers = [];
-
+            
             if (data) {
+                const counts = { '☀️':0, '😐':0, '🌧️':0, '⚡':0 };
                 data.forEach(p => {
-                    if (p.user_id == userId) return;
-                    const d = getDistance(myPos.lat, myPos.lng, p.lat, p.lng);
-                    if (d <= document.getElementById('radius-range').value) renderUser(p);
+                    counts[p.mood]++;
+                    if (p.user_id != userId && activeMoods.includes(p.mood)) {
+                        const dist = getDistance(myPos.lat, myPos.lng, p.lat, p.lng);
+                        if (dist <= document.getElementById('radius-range').value) renderUser(p);
+                    }
                 });
+                updateStatsUI(counts, data.length);
             }
+        }
+
+        function updateStatsUI(counts, total) {
+            total = total || 1;
+            Object.keys(counts).forEach(m => {
+                document.getElementById('p-'+m).innerText = `${m} ${Math.round(counts[m]/total*100)}%`;
+            });
         }
 
         function renderUser(p) {
             const isFriend = (p.user_id == friendId || p.friend_id == userId);
-            const iconHtml = `
-                <div class="nexus-marker">
-                    <img src="${isFriend && p.user_photo ? p.user_photo : 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="avatar-img" style="border-color:${isFriend ? '#007bff' : '#ccc'}">
-                    <div class="label">${isFriend ? p.user_name : 'Ghost'}</div>
-                    <div style="font-size:18px;">${p.mood}</div>
-                </div>`;
+            const iconHtml = `<div class="nexus-marker">
+                <img src="${isFriend && p.user_photo ? p.user_photo : 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="avatar-img">
+                <div class="label">${isFriend ? p.user_name : 'Ghost'}</div>
+                <div style="font-size:18px;">${p.mood}</div>
+            </div>`;
             const m = L.marker([p.lat, p.lng], { icon: L.divIcon({ className: 'c', html: iconHtml, iconSize: [40, 60] }) }).addTo(map);
             markers.push(m);
         }
@@ -157,12 +166,12 @@
 
         function updateMyMarker() {
             const photo = tg.initDataUnsafe.user?.photo_url || '';
-            const iconHtml = `<div class="nexus-marker"><img src="${photo}" class="avatar-img" style="border-color:#ff4d4d;"><div class="label">Вы</div><div style="font-size:20px;">${currentMood}</div></div>`;
+            const iconHtml = `<div class="nexus-marker"><img src="${photo}" class="avatar-img"><div class="label">Вы</div><div style="font-size:20px;">${currentMood}</div></div>`;
             if (!myMarker) myMarker = L.marker([myPos.lat, myPos.lng], { zIndexOffset: 1000, icon: L.divIcon({ html: iconHtml, iconSize: [40, 60] }) }).addTo(map);
             else { myMarker.setLatLng([myPos.lat, myPos.lng]); myMarker.setIcon(L.divIcon({ html: iconHtml, iconSize: [40, 60] })); }
         }
 
-        // ПУЛЬС И КАМЕРА
+        // Замер пульса
         let isMeasuring = false;
         const video = document.getElementById('preview');
         const canvas = document.createElement('canvas');
@@ -190,15 +199,12 @@
             let r = 0, g = 0;
             for (let i = 0; i < data.length; i += 4) { r += data[i]; g += data[i+1]; }
 
-            // Порог: r должен быть значительно выше g (палец красный) и r должен быть ярким
             if (r > 18000 && r > g * 1.5) { 
-                document.getElementById('status').innerText = "❤️";
                 document.getElementById('instruction').innerText = "Пульс фиксируется...";
                 document.getElementById('instruction').style.color = "#28a745";
                 sendPulseData();
                 tg.HapticFeedback.impactOccurred('light');
             } else {
-                document.getElementById('status').innerText = "";
                 document.getElementById('instruction').innerText = "⚠️ ПЛОТНО ПРИЖМИ ПАЛЕЦ И ДОБАВЬ СВЕТА";
                 document.getElementById('instruction').style.color = "#d97706";
             }
@@ -207,12 +213,12 @@
 
         async function sendPulseData() {
             if (myPos.lat === 0) return;
-            await _supabase.from('pulses').insert([{ 
-                lat: myPos.lat, lng: myPos.lng, user_id: userId, 
+            await _supabase.from('pulses').upsert([{ 
+                user_id: userId, lat: myPos.lat, lng: myPos.lng, 
                 user_name: tg.initDataUnsafe.user?.first_name || "Ghost", 
                 user_photo: tg.initDataUnsafe.user?.photo_url || "",
                 mood: currentMood, friend_id: friendId
-            }]);
+            }], { onConflict: 'user_id' });
         }
 
         document.getElementById('share-btn').onclick = () => {
