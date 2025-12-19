@@ -47,16 +47,19 @@
         .mood-btn.active { opacity: 1; border-color: #007bff; background: #fff; }
         .range-slider { width: 100%; accent-color: #007bff; margin: 8px 0; }
         .btn { padding: 15px; border-radius: 30px; border: none; font-weight: bold; width: 85%; pointer-events: auto; margin: 5px auto; display: block; font-size: 14px; }
+        
         #pulse-btn { background: #ff4d4d; color: white; display: none; box-shadow: 0 4px 10px rgba(255,77,77,0.3); }
-        #find-friends-btn { background: #28a745; color: white; margin-bottom: 8px; }
+        #find-friends-btn { background: #28a745; color: white; }
         #start-btn { background: #007bff; color: white; }
+        
+        .section-title { font-size: 10px; font-weight: bold; color: #666; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
         .nexus-marker { text-align: center; position: relative; width: 40px; height: 65px; }
         .leaflet-marker-icon { background: none !important; border: none !important; }
     </style>
 </head>
 <body>
     <div id="filter-container" class="panel">
-        <div style="font-size: 10px; color: #666; font-weight: bold;">ВИДИМОСТЬ: <span id="radius-val">1000</span>м</div>
+        <div class="section-title">Видимость: <span id="radius-val">1000</span>м</div>
         <input type="range" min="100" max="5000" value="1000" class="range-slider" id="radius-range" oninput="document.getElementById('radius-val').innerText=this.value">
         <div id="mood-filters" style="display: flex; justify-content: space-around;">
             <button class="mood-btn active" data-mood="☀️">☀️</button>
@@ -71,17 +74,22 @@
     <div id="ui">
         <div id="instruction">⚠️ ПРИЖМИ ПАЛЕЦ К КАМЕРЕ</div>
         <video id="preview" style="width: 60px; height: 60px; border-radius: 50%; display: none; margin: 0 auto 10px; object-fit: cover; pointer-events: auto;" playsinline muted></video>
+        
         <div id="main-panel" class="panel" style="display:none;">
-            <button id="find-friends-btn" class="btn" onclick="zoomToAll()">👥 ГДЕ ДРУЗЬЯ?</button>
-            <div id="mood-selector" style="display: flex; justify-content: center; gap: 15px; margin-bottom: 5px;">
+            <div class="section-title">Выбери свое настроение</div>
+            <div id="mood-selector" style="display: flex; justify-content: center; gap: 15px; margin-bottom: 15px;">
                 <span id="sel-☀️" style="font-size:32px; cursor:pointer; opacity:0.3;" onclick="selectMood('☀️')">☀️</span>
                 <span id="sel-😐" style="font-size:32px; cursor:pointer;" onclick="selectMood('😐')">😐</span>
                 <span id="sel-🌧️" style="font-size:32px; cursor:pointer; opacity:0.3;" onclick="selectMood('🌧️')">🌧️</span>
                 <span id="sel-⚡" style="font-size:32px; cursor:pointer; opacity:0.3;" onclick="selectMood('⚡')">⚡</span>
             </div>
+            
             <button id="pulse-btn" class="btn">❤️ ЗАМЕРИТЬ ПУЛЬС</button>
-            <button id="share-btn" class="btn" style="background:none; border: 1px solid #ddd; font-size: 11px; color: #777; margin-top:10px;" onclick="tg.openTelegramLink('https://t.me/share/url?url=https://t.me/NexusPulseBot?start=' + userId)">ПОЗВАТЬ ДРУЗЕЙ</button>
+            <button id="find-friends-btn" class="btn" onclick="zoomToAll()">👥 ГДЕ ДРУЗЬЯ?</button>
+            
+            <button id="share-btn" class="btn" style="background:none; border: 1px solid #ddd; font-size: 11px; color: #777; margin-top:10px;" onclick="tg.openTelegramLink('https://t.me/share/url?url=https://t.me/PulseMapTestBot/app?startapp=' + userId)">ПОЗВАТЬ ДРУЗЕЙ</button>
         </div>
+        
         <button id="start-btn" class="btn">ВОЙТИ В NEXUS</button>
     </div>
 
@@ -101,26 +109,12 @@
         let friendId = tg.initDataUnsafe.start_param ? String(tg.initDataUnsafe.start_param) : null;
         let isActuallyPulsing = false, lastPulseStatus = false, measureInterval;
 
-        _supabase.channel('public:pulses')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'pulses' }, (p) => handleRealtimeUpdate(p))
+        // Настройка Realtime
+        _supabase.channel('db-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'pulses' }, (p) => {
+                loadAllUsers(); // При любом изменении обновляем карту
+            })
             .subscribe();
-
-        function handleRealtimeUpdate(payload) {
-            const data = payload.new || payload.old;
-            if (!data || String(data.user_id) === userId) return;
-            
-            if (payload.eventType === 'DELETE') {
-                removeMarker(data.user_id);
-                return;
-            }
-
-            const dist = getDistance(myPos.lat, myPos.lng, data.lat, data.lng);
-            if (activeMoods.includes(data.mood) && dist <= document.getElementById('radius-range').value) {
-                renderUser(data);
-            } else {
-                removeMarker(data.user_id);
-            }
-        }
 
         function removeMarker(id) {
             if (markersMap[id]) { map.removeLayer(markersMap[id]); delete markersMap[id]; }
@@ -149,20 +143,28 @@
             this.style.display = 'none';
             document.getElementById('main-panel').style.display = 'block';
             document.getElementById('pulse-btn').style.display = 'block';
+            
             navigator.geolocation.watchPosition(p => {
                 myPos = { lat: p.coords.latitude, lng: p.coords.longitude };
                 if(!myMarker) map.setView([myPos.lat, myPos.lng], 15);
                 updateMyMarker();
                 loadAllUsers();
-            }, null, { enableHighAccuracy: true });
+            }, (err) => console.error(err), { enableHighAccuracy: true });
         };
 
         async function loadAllUsers() {
-            // Убрал фильтр по времени, чтобы точно видеть друзей
-            const { data, error } = await _supabase.from('pulses').select('*');
+            const { data } = await _supabase.from('pulses').select('*');
             if (data) {
+                const radius = document.getElementById('radius-range').value;
                 data.forEach(p => {
-                    if (String(p.user_id) !== userId) renderUser(p);
+                    if (String(p.user_id) !== userId) {
+                        const dist = getDistance(myPos.lat, myPos.lng, p.lat, p.lng);
+                        if (dist <= radius) {
+                            renderUser(p);
+                        } else {
+                            removeMarker(p.user_id);
+                        }
+                    }
                 });
             }
         }
@@ -174,7 +176,7 @@
             
             const iconHtml = `<div class="nexus-marker ${pulsingClass}">
                 <img src="${p.user_photo || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="avatar-img">
-                <div class="label" style="background:${bgLabel}; color:${isFriend ? '#fff' : '#000'};">${p.user_name || 'Ghost'}</div>
+                <div class="label" style="background:${bgLabel}; color:${isFriend ? '#fff' : '#000'}; border:none;">${p.user_name || 'Ghost'}</div>
                 <div style="font-size:18px;">${p.mood}</div>
             </div>`;
             
@@ -211,7 +213,7 @@
                 document.getElementById('preview').srcObject = stream;
                 document.getElementById('preview').play();
                 measureInterval = setInterval(processFrame, 800);
-            } catch(e) { alert("Камера недоступна"); }
+            } catch(e) { console.error("Camera error"); }
         }
 
         function stopPulse() {
@@ -237,7 +239,6 @@
             }
 
             if (currentFingerOn) {
-                // ВИБРАЦИЯ В ТАКТ ПУЛЬСУ (каждую итерацию цикла)
                 tg.HapticFeedback.impactOccurred('light');
                 document.getElementById('instruction').innerText = "Пульс фиксируется...";
                 document.getElementById('instruction').style.color = "#28a745";
