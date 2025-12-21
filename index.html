@@ -249,14 +249,34 @@
         }
 
         async function sendPulseData(pulsing) {
-            if (myPos.lat === 0) return;
-            await _supabase.from('pulses').upsert([{ 
-                user_id: userId, lat: myPos.lat, lng: myPos.lng, 
+            // 1. Проверяем, есть ли координаты
+            if (!myPos || myPos.lat === 0) {
+                tg.MainButton.setText("ОЖИДАНИЕ GPS...").show();
+                return;
+            }
+        
+            const payload = { 
+                user_id: String(userId), 
+                lat: myPos.lat, 
+                lng: myPos.lng, 
                 user_name: tg.initDataUnsafe.user?.first_name || "Ghost", 
                 user_photo: tg.initDataUnsafe.user?.photo_url || "",
-                mood: currentMood, friend_id: friendId,
-                is_pulsing: pulsing, created_at: new Date().toISOString()
-            }], { onConflict: 'user_id' });
+                mood: currentMood, 
+                friend_id: friendId ? String(friendId) : null,
+                is_pulsing: pulsing, 
+                created_at: new Date().toISOString()
+            };
+        
+            // 2. Пробуем отправить
+            const { error } = await _supabase.from('pulses').upsert([payload], { onConflict: 'user_id' });
+        
+            if (error) {
+                // Если база выдаст ошибку, ты увидишь её в алерте
+                tg.showAlert("ОШИБКА БАЗЫ: " + error.message);
+            } else {
+                console.log("Данные в базе!");
+                tg.MainButton.hide(); 
+            }
         }
 
         function getDistance(lat1, lon1, lat2, lon2) {
