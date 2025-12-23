@@ -1,290 +1,210 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Nexus Pulse: Glass Edition</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carbon — Экология в коде</title>
     <style>
-        body { margin: 0; background: #f0f2f5; color: #1a1a1b; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }
-        #map { height: 100vh; width: 100vw; position: absolute; z-index: 1; }
-        #ui { position: absolute; bottom: 20px; left: 0; right: 0; z-index: 10; text-align: center; pointer-events: none; }
-        
-        .panel { 
-            pointer-events: auto; background: rgba(255,255,255,0.7); 
-            padding: 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.3); 
-            width: 90%; margin: 0 auto 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        :root {
+            --apple-bg: #f5f5f7;
+            --apple-card: rgba(255, 255, 255, 0.72);
+            --apple-blue: #0071e3;
+            --apple-text: #1d1d1f;
+            --apple-gray: #86868b;
         }
 
-        #filter-container { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 10; width: 90%; pointer-events: auto; }
-        #instruction { color: #d97706; font-size: 13px; font-weight: bold; margin-bottom: 10px; display: none; }
-
-        @keyframes pulse-ring {
-            0% { transform: scale(0.8); opacity: 0.8; }
-            100% { transform: scale(2.2); opacity: 0; }
-        }
-        .pulse-active::before {
-            content: ''; position: absolute; width: 38px; height: 38px;
-            top: 0; left: 50%; margin-left: -19px; background-color: #ff4d4d; border-radius: 50%;
-            animation: pulse-ring 1.2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-            z-index: 1;
-        }
-
-        .avatar-img { 
-            width: 38px; height: 38px; border-radius: 50%; object-fit: cover; 
-            border: none !important; box-shadow: none !important; position: relative; z-index: 2; 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
+            background-color: var(--apple-bg);
+            color: var(--apple-text);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
         }
 
-        .label { 
-            font-size: 10px; font-weight: bold; border-radius: 6px; padding: 2px 6px; 
-            display: inline-block; margin-top: 2px; position: relative; z-index: 2;
-            backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
-            border: 1px solid rgba(255,255,255,0.2);
+        /* Навигация */
+        nav {
+            position: absolute;
+            top: 0; width: 100%; padding: 20px 40px;
+            display: flex; justify-content: flex-end;
+            box-sizing: border-box;
         }
 
-        .mood-btn { font-size: 24px; background: none; border: 2px solid transparent; cursor: pointer; border-radius: 12px; opacity: 0.3; transition: 0.2s; padding: 5px; }
-        .mood-btn.active { opacity: 1; border-color: #007bff; background: #fff; }
-        .range-slider { width: 100%; accent-color: #007bff; margin: 8px 0; }
-        .btn { padding: 15px; border-radius: 30px; border: none; font-weight: bold; width: 85%; pointer-events: auto; margin: 5px auto; display: block; font-size: 14px; }
-        
-        #pulse-btn { background: #ff4d4d; color: white; display: none; box-shadow: 0 4px 10px rgba(255,77,77,0.3); }
-        #find-friends-btn { background: #28a745; color: white; }
-        #start-btn { background: #007bff; color: white; }
-        
-        .section-title { font-size: 10px; font-weight: bold; color: #666; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .nexus-marker { text-align: center; position: relative; width: 40px; height: 65px; }
-        .leaflet-marker-icon { background: none !important; border: none !important; }
+        .nav-link {
+            color: var(--apple-blue);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 400;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        /* Контейнер */
+        .hero {
+            text-align: center;
+            width: 100%; max-width: 500px;
+            padding: 40px;
+            background: var(--apple-card);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-radius: 34px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.05);
+            animation: slideUp 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        h1 { font-size: 40px; font-weight: 600; letter-spacing: -1px; margin-bottom: 8px; }
+        .subtitle { color: var(--apple-gray); font-size: 17px; margin-bottom: 35px; }
+
+        /* Поля ввода */
+        input {
+            width: 100%;
+            padding: 18px 20px;
+            margin-bottom: 12px;
+            border-radius: 14px;
+            border: 1px solid #d2d2d7;
+            background: rgba(255,255,255,0.8);
+            font-size: 17px;
+            outline: none;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        input:focus { border-color: var(--apple-blue); box-shadow: 0 0 0 4px rgba(0,113,227,0.1); }
+
+        button {
+            width: 100%;
+            padding: 18px;
+            border-radius: 14px;
+            border: none;
+            background: var(--apple-blue);
+            color: #fff;
+            font-size: 17px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        button:active { transform: scale(0.98); }
+
+        /* Модальное окно */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.15);
+            backdrop-filter: blur(15px);
+            z-index: 100;
+            align-items: center; justify-content: center;
+        }
+
+        .modal-content {
+            background: #fff;
+            padding: 40px;
+            border-radius: 28px;
+            width: 320px;
+            text-align: center;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.1);
+        }
+
+        #status { margin-top: 30px; min-height: 40px; }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
     </style>
 </head>
 <body>
-    <div id="filter-container" class="panel">
-        <div class="section-title">Видимость: <span id="radius-val">1000</span>м</div>
-        <input type="range" min="100" max="5000" value="1000" class="range-slider" id="radius-range" oninput="document.getElementById('radius-val').innerText=this.value">
-        <div id="mood-filters" style="display: flex; justify-content: space-around;">
-            <button class="mood-btn active" data-mood="☀️">☀️</button>
-            <button class="mood-btn active" data-mood="😐">😐</button>
-            <button class="mood-btn active" data-mood="🌧️">🌧️</button>
-            <button class="mood-btn active" data-mood="⚡">⚡</button>
-        </div>
+
+<nav>
+    <a class="nav-link" onclick="openAuth()">Войти</a>
+</nav>
+
+<div class="hero">
+    <h1>Carbon</h1>
+    <p class="subtitle">Чистый интернет начинается здесь.</p>
+    
+    <input type="text" id="urlInput" placeholder="URL вашего сайта" autocomplete="off">
+    <button onclick="startScan()">Проверить</button>
+
+    <div id="status"></div>
+</div>
+
+<div id="authModal" class="modal">
+    <div class="modal-content">
+        <h2 id="modalTitle" style="margin-top:0">Вход</h2>
+        <input type="email" id="authEmail" placeholder="Email">
+        <input type="password" id="authPassword" placeholder="Пароль">
+        <button onclick="handleAuth()" id="authBtn">Продолжить</button>
+        <p style="font-size:13px; color:var(--apple-gray); margin-top:20px;">
+            <span id="toggleText">Нет аккаунта?</span> 
+            <a onclick="toggleAuthMode()" style="color:var(--apple-blue); cursor:pointer">Создать</a>
+        </p>
+        <a onclick="closeAuth()" style="font-size:13px; color:var(--apple-gray); cursor:pointer; display:block; margin-top:15px;">Отмена</a>
     </div>
+</div>
 
-    <div id="map"></div>
+<script>
+    let isLoginMode = true;
 
-    <div id="ui">
-        <div id="instruction">⚠️ ПРИЖМИ ПАЛЕЦ К КАМЕРЕ</div>
-        <video id="preview" style="width: 60px; height: 60px; border-radius: 50%; display: none; margin: 0 auto 10px; object-fit: cover; pointer-events: auto;" playsinline muted></video>
-        
-        <div id="main-panel" class="panel" style="display:none;">
-            <div class="section-title">Выбери свое настроение</div>
-            <div id="mood-selector" style="display: flex; justify-content: center; gap: 15px; margin-bottom: 15px;">
-                <span id="sel-☀️" style="font-size:32px; cursor:pointer; opacity:0.3;" onclick="selectMood('☀️')">☀️</span>
-                <span id="sel-😐" style="font-size:32px; cursor:pointer;" onclick="selectMood('😐')">😐</span>
-                <span id="sel-🌧️" style="font-size:32px; cursor:pointer; opacity:0.3;" onclick="selectMood('🌧️')">🌧️</span>
-                <span id="sel-⚡" style="font-size:32px; cursor:pointer; opacity:0.3;" onclick="selectMood('⚡')">⚡</span>
-            </div>
-            
-            <button id="pulse-btn" class="btn">❤️ ЗАМЕРИТЬ ПУЛЬС</button>
-            <button id="find-friends-btn" class="btn" onclick="zoomToAll()">👥 ГДЕ ДРУЗЬЯ?</button>
-            
-            <button id="share-btn" class="btn" style="background:none; border: 1px solid #ddd; font-size: 11px; color: #777; margin-top:10px;" onclick="tg.openTelegramLink('https://t.me/share/url?url=https://t.me/PulseMapTestBot/app?startapp=' + userId)">ПОЗВАТЬ ДРУЗЕЙ</button>
-        </div>
-        
-        <button id="start-btn" class="btn">ВОЙТИ В NEXUS</button>
-    </div>
+    // --- Логика сканирования ---
+    async function startScan() {
+        const url = document.getElementById('urlInput').value;
+        const status = document.getElementById('status');
+        if(!url) return;
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+        status.innerHTML = '<p style="color:var(--apple-blue); font-size:15px;">🔍 Анализируем структуру...</p>';
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-        const _supabase = supabase.createClient('https://efomfhxtzqixmtykbekr.supabase.co', 'sb_publishable_Q4jqU-sJWZloPAEcgs7TpA_fLA_NnIZ');
-        
-        const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([0,0], 2);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+        try {
+            await fetch('/api/scan', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ url })
+            });
 
-        let myPos = { lat: 0, lng: 0 }, myMarker, markersMap = {}, activeMoods = ['☀️', '😐', '🌧️', '⚡'], currentMood = '😐';
-        let userId = String(tg.initDataUnsafe.user?.id || Date.now());
-        let friendId = tg.initDataUnsafe.start_param ? String(tg.initDataUnsafe.start_param) : null;
-        let isActuallyPulsing = false, lastPulseStatus = false, measureInterval;
+            setTimeout(() => {
+                status.innerHTML = `
+                    <p style="color:#28a745; font-weight:500; margin-bottom:15px;">Анализ готов</p>
+                    <img src="/api/badge?url=${encodeURIComponent(url)}" style="border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+                `;
+            }, 13000);
+        } catch(e) { status.innerText = 'Ошибка соединения'; }
+    }
 
-        // Настройка Realtime
-        _supabase.channel('db-changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'pulses' }, (p) => {
-                loadAllUsers(); // При любом изменении обновляем карту
-            })
-            .subscribe();
+    // --- Логика Авторизации ---
+    function openAuth() { document.getElementById('authModal').style.display = 'flex'; }
+    function closeAuth() { document.getElementById('authModal').style.display = 'none'; }
 
-        function removeMarker(id) {
-            if (markersMap[id]) { map.removeLayer(markersMap[id]); delete markersMap[id]; }
+    function toggleAuthMode() {
+        isLoginMode = !isLoginMode;
+        document.getElementById('modalTitle').innerText = isLoginMode ? 'Вход' : 'Регистрация';
+        document.getElementById('authBtn').innerText = isLoginMode ? 'Продолжить' : 'Создать аккаунт';
+        document.getElementById('toggleText').innerText = isLoginMode ? 'Нет аккаунта?' : 'Уже есть аккаунт?';
+    }
+
+    async function handleAuth() {
+        const email = document.getElementById('authEmail').value;
+        const password = document.getElementById('authPassword').value;
+        const endpoint = isLoginMode ? '/api/login' : '/api/register';
+
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ email, password })
+        });
+
+        if (res.ok) {
+            alert(isLoginMode ? 'Добро пожаловать!' : 'Регистрация успешна!');
+            closeAuth();
+            // На следующем этапе мы сделаем здесь переход в Dashboard
+        } else {
+            alert('Ошибка доступа. Проверьте данные.');
         }
+    }
+</script>
 
-        function zoomToAll() {
-            let markers = [];
-            if (myMarker) markers.push(myMarker.getLatLng());
-            Object.values(markersMap).forEach(m => markers.push(m.getLatLng()));
-            
-            if (markers.length > 1) {
-                map.fitBounds(L.latLngBounds(markers), { padding: [50, 50] });
-            } else if (myPos.lat !== 0) {
-                map.setView([myPos.lat, myPos.lng], 16);
-            }
-        }
-
-        function selectMood(m) {
-            currentMood = m;
-            ['☀️','😐','🌧️','⚡'].forEach(emo => document.getElementById('sel-'+emo).style.opacity = (emo === m ? '1' : '0.3'));
-            updateMyMarker();
-            sendPulseData(isActuallyPulsing); 
-        }
-
-        document.getElementById('start-btn').onclick = function() {
-            this.style.display = 'none';
-            document.getElementById('main-panel').style.display = 'block';
-            document.getElementById('pulse-btn').style.display = 'block';
-            
-            navigator.geolocation.watchPosition(p => {
-                myPos = { lat: p.coords.latitude, lng: p.coords.longitude };
-                if(!myMarker) map.setView([myPos.lat, myPos.lng], 15);
-                updateMyMarker();
-                loadAllUsers();
-            }, (err) => console.error(err), { enableHighAccuracy: true });
-        };
-
-        async function loadAllUsers() {
-            const { data } = await _supabase.from('pulses').select('*');
-            if (data) {
-                const radius = document.getElementById('radius-range').value;
-                data.forEach(p => {
-                    if (String(p.user_id) !== userId) {
-                        const dist = getDistance(myPos.lat, myPos.lng, p.lat, p.lng);
-                        if (dist <= radius) {
-                            renderUser(p);
-                        } else {
-                            removeMarker(p.user_id);
-                        }
-                    }
-                });
-            }
-        }
-
-        function renderUser(p) {
-            const pulsingClass = p.is_pulsing ? 'pulse-active' : '';
-            const isFriend = (String(p.user_id) === friendId || String(p.friend_id) === userId);
-            const bgLabel = isFriend ? 'rgba(0,123,255,0.7)' : 'rgba(255,255,255,0.6)';
-            
-            const iconHtml = `<div class="nexus-marker ${pulsingClass}">
-                <img src="${p.user_photo || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="avatar-img">
-                <div class="label" style="background:${bgLabel}; color:${isFriend ? '#fff' : '#000'}; border:none;">${p.user_name || 'Ghost'}</div>
-                <div style="font-size:18px;">${p.mood}</div>
-            </div>`;
-            
-            const icon = L.divIcon({ className: 'c', html: iconHtml, iconSize: [40, 65] });
-            if (markersMap[p.user_id]) {
-                markersMap[p.user_id].setLatLng([p.lat, p.lng]);
-                markersMap[p.user_id].setIcon(icon);
-            } else {
-                markersMap[p.user_id] = L.marker([p.lat, p.lng], { icon: icon }).addTo(map);
-            }
-        }
-
-        function updateMyMarker() {
-            const pulsingClass = isActuallyPulsing && lastPulseStatus ? 'pulse-active' : '';
-            const photo = tg.initDataUnsafe.user?.photo_url || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
-            const iconHtml = `<div class="nexus-marker ${pulsingClass}"><img src="${photo}" class="avatar-img"><div class="label" style="background:rgba(255,255,255,0.6);">Вы</div><div style="font-size:22px;">${currentMood}</div></div>`;
-            const icon = L.divIcon({ html: iconHtml, iconSize: [40, 65] });
-            if (!myMarker) myMarker = L.marker([myPos.lat, myPos.lng], { zIndexOffset: 1000, icon: icon }).addTo(map);
-            else { myMarker.setLatLng([myPos.lat, myPos.lng]); myMarker.setIcon(icon); }
-        }
-
-        document.getElementById('pulse-btn').onclick = function() {
-            isActuallyPulsing = !isActuallyPulsing;
-            this.innerText = isActuallyPulsing ? "🛑 ОСТАНОВИТЬ" : "❤️ ЗАМЕРИТЬ ПУЛЬС";
-            document.getElementById('preview').style.display = isActuallyPulsing ? 'block' : 'none';
-            document.getElementById('instruction').style.display = isActuallyPulsing ? 'block' : 'none';
-            if(!isActuallyPulsing) { lastPulseStatus = false; stopPulse(); sendPulseData(false); updateMyMarker(); } 
-            else { startPulse(); }
-        };
-
-        async function startPulse() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                document.getElementById('preview').srcObject = stream;
-                document.getElementById('preview').play();
-                measureInterval = setInterval(processFrame, 800);
-            } catch(e) { console.error("Camera error"); }
-        }
-
-        function stopPulse() {
-            const stream = document.getElementById('preview').srcObject;
-            if (stream) stream.getTracks().forEach(t => t.stop());
-            clearInterval(measureInterval);
-        }
-
-        function processFrame() {
-            const video = document.getElementById('preview');
-            if (!video.videoWidth) return;
-            const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
-            canvas.width = 10; canvas.height = 10; ctx.drawImage(video, 0, 0, 10, 10);
-            const data = ctx.getImageData(0, 0, 10, 10).data;
-            let r = 0, g = 0;
-            for (let i = 0; i < data.length; i += 4) { r += data[i]; g += data[i+1]; }
-            const currentFingerOn = (r > 18000 && r > g * 1.55);
-            
-            if (currentFingerOn !== lastPulseStatus) {
-                lastPulseStatus = currentFingerOn;
-                sendPulseData(currentFingerOn);
-                updateMyMarker();
-            }
-
-            if (currentFingerOn) {
-                tg.HapticFeedback.impactOccurred('light');
-                document.getElementById('instruction').innerText = "Пульс фиксируется...";
-                document.getElementById('instruction').style.color = "#28a745";
-            } else {
-                document.getElementById('instruction').innerText = "⚠️ ПРИЖМИ ПАЛЕЦ";
-                document.getElementById('instruction').style.color = "#d97706";
-            }
-        }
-
-        async function sendPulseData(pulsing) {
-            // 1. Проверяем, есть ли координаты
-            if (!myPos || myPos.lat === 0) {
-                tg.MainButton.setText("ОЖИДАНИЕ GPS...").show();
-                return;
-            }
-        
-            const payload = { 
-                user_id: String(userId), 
-                lat: myPos.lat, 
-                lng: myPos.lng, 
-                user_name: tg.initDataUnsafe.user?.first_name || "Ghost", 
-                user_photo: tg.initDataUnsafe.user?.photo_url || "",
-                mood: currentMood, 
-                friend_id: friendId ? String(friendId) : null,
-                is_pulsing: pulsing, 
-                created_at: new Date().toISOString()
-            };
-        
-            // 2. Пробуем отправить
-            const { error } = await _supabase.from('pulses').upsert([payload], { onConflict: 'user_id' });
-        
-            if (error) {
-                // Если база выдаст ошибку, ты увидишь её в алерте
-                tg.showAlert("ОШИБКА БАЗЫ: " + error.message);
-            } else {
-                console.log("Данные в базе!");
-                tg.MainButton.hide(); 
-            }
-        }
-
-        function getDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3;
-            const dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
-            const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-    </script>
 </body>
 </html>
