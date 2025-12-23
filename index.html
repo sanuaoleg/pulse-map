@@ -3,18 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carbon — Экология в коде</title>
+    <title>Carbon — Чистый интернет</title>
     <style>
         :root {
             --apple-bg: #f5f5f7;
-            --apple-card: rgba(255, 255, 255, 0.72);
+            --apple-card: rgba(255, 255, 255, 0.8);
             --apple-blue: #0071e3;
             --apple-text: #1d1d1f;
-            --apple-gray: #86868b;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--apple-bg);
             color: var(--apple-text);
             margin: 0;
@@ -23,188 +22,135 @@
             justify-content: center;
             height: 100vh;
             -webkit-font-smoothing: antialiased;
-            overflow: hidden;
         }
 
-        /* Навигация */
+        /* Кнопка входа в углу */
         nav {
             position: absolute;
-            top: 0; width: 100%; padding: 20px 40px;
-            display: flex; justify-content: flex-end;
-            box-sizing: border-box;
+            top: 30px; right: 40px;
         }
 
-        .nav-link {
+        .auth-trigger {
             color: var(--apple-blue);
             text-decoration: none;
-            font-size: 14px;
-            font-weight: 400;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-
-        /* Контейнер */
-        .hero {
-            text-align: center;
-            width: 100%; max-width: 500px;
-            padding: 40px;
-            background: var(--apple-card);
-            backdrop-filter: blur(20px) saturate(180%);
-            border-radius: 34px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.05);
-            animation: slideUp 1s cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
-
-        h1 { font-size: 40px; font-weight: 600; letter-spacing: -1px; margin-bottom: 8px; }
-        .subtitle { color: var(--apple-gray); font-size: 17px; margin-bottom: 35px; }
-
-        /* Поля ввода */
-        input {
-            width: 100%;
-            padding: 18px 20px;
-            margin-bottom: 12px;
-            border-radius: 14px;
-            border: 1px solid #d2d2d7;
-            background: rgba(255,255,255,0.8);
-            font-size: 17px;
-            outline: none;
-            box-sizing: border-box;
-            transition: all 0.3s ease;
-        }
-
-        input:focus { border-color: var(--apple-blue); box-shadow: 0 0 0 4px rgba(0,113,227,0.1); }
-
-        button {
-            width: 100%;
-            padding: 18px;
-            border-radius: 14px;
-            border: none;
-            background: var(--apple-blue);
-            color: #fff;
-            font-size: 17px;
             font-weight: 500;
             cursor: pointer;
-            transition: transform 0.2s, opacity 0.2s;
+            font-size: 15px;
         }
 
-        button:active { transform: scale(0.98); }
+        .container {
+            width: 100%; max-width: 480px;
+            padding: 50px;
+            background: var(--apple-card);
+            backdrop-filter: blur(20px);
+            border-radius: 35px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+            text-align: center;
+        }
 
-        /* Модальное окно */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.15);
-            backdrop-filter: blur(15px);
-            z-index: 100;
-            align-items: center; justify-content: center;
+        h1 { font-size: 38px; font-weight: 600; letter-spacing: -1px; margin-bottom: 10px; }
+        p.desc { color: #86868b; margin-bottom: 35px; font-size: 17px; }
+
+        input {
+            width: 100%; padding: 18px; margin-bottom: 15px;
+            border-radius: 15px; border: 1px solid #d2d2d7;
+            font-size: 16px; box-sizing: border-box; outline: none;
+        }
+
+        button.main-btn {
+            width: 100%; padding: 18px; border-radius: 15px; border: none;
+            background: var(--apple-blue); color: white;
+            font-size: 17px; font-weight: 500; cursor: pointer;
+        }
+
+        /* Модальное окно авторизации */
+        #authModal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.1); backdrop-filter: blur(10px);
+            z-index: 100; align-items: center; justify-content: center;
         }
 
         .modal-content {
-            background: #fff;
-            padding: 40px;
-            border-radius: 28px;
-            width: 320px;
-            text-align: center;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.1);
+            background: #fff; padding: 40px; border-radius: 30px; width: 340px;
+            text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.1);
         }
 
-        #status { margin-top: 30px; min-height: 40px; }
-
-        @keyframes slideUp {
-            from { transform: translateY(30px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
+        #status { margin-top: 25px; }
     </style>
 </head>
 <body>
 
 <nav>
-    <a class="nav-link" onclick="openAuth()">Войти</a>
+    <a class="auth-trigger" onclick="showAuth()">Войти</a>
 </nav>
 
-<div class="hero">
+<div class="container">
     <h1>Carbon</h1>
-    <p class="subtitle">Чистый интернет начинается здесь.</p>
+    <p class="desc">Узнайте экологический след вашего сайта.</p>
     
-    <input type="text" id="urlInput" placeholder="URL вашего сайта" autocomplete="off">
-    <button onclick="startScan()">Проверить</button>
+    <input type="text" id="urlInput" placeholder="https://apple.com">
+    <button class="main-btn" onclick="startScan()">Проверить</button>
 
     <div id="status"></div>
 </div>
 
-<div id="authModal" class="modal">
+<div id="authModal">
     <div class="modal-content">
-        <h2 id="modalTitle" style="margin-top:0">Вход</h2>
-        <input type="email" id="authEmail" placeholder="Email">
-        <input type="password" id="authPassword" placeholder="Пароль">
-        <button onclick="handleAuth()" id="authBtn">Продолжить</button>
-        <p style="font-size:13px; color:var(--apple-gray); margin-top:20px;">
-            <span id="toggleText">Нет аккаунта?</span> 
-            <a onclick="toggleAuthMode()" style="color:var(--apple-blue); cursor:pointer">Создать</a>
+        <h2 id="mTitle" style="margin-top:0">Вход</h2>
+        <input type="email" id="aEmail" placeholder="Email">
+        <input type="password" id="aPassword" placeholder="Пароль">
+        <button class="main-btn" onclick="handleAuth()" id="aBtn">Войти</button>
+        <p style="font-size:13px; margin-top:15px; color:#86868b">
+            <span id="tText">Нет аккаунта?</span> 
+            <a onclick="toggleMode()" style="color:var(--apple-blue); cursor:pointer">Создать</a>
         </p>
-        <a onclick="closeAuth()" style="font-size:13px; color:var(--apple-gray); cursor:pointer; display:block; margin-top:15px;">Отмена</a>
+        <a onclick="closeAuth()" style="display:block; margin-top:20px; color:#86868b; font-size:12px; cursor:pointer">Отмена</a>
     </div>
 </div>
 
 <script>
-    let isLoginMode = true;
+    let isLogin = true;
 
-    // --- Логика сканирования ---
-    async function startScan() {
-        const url = document.getElementById('urlInput').value;
-        const status = document.getElementById('status');
-        if(!url) return;
-
-        status.innerHTML = '<p style="color:var(--apple-blue); font-size:15px;">🔍 Анализируем структуру...</p>';
-
-        try {
-            await fetch('/api/scan', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ url })
-            });
-
-            setTimeout(() => {
-                status.innerHTML = `
-                    <p style="color:#28a745; font-weight:500; margin-bottom:15px;">Анализ готов</p>
-                    <img src="/api/badge?url=${encodeURIComponent(url)}" style="border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.1)">
-                `;
-            }, 13000);
-        } catch(e) { status.innerText = 'Ошибка соединения'; }
-    }
-
-    // --- Логика Авторизации ---
-    function openAuth() { document.getElementById('authModal').style.display = 'flex'; }
+    function showAuth() { document.getElementById('authModal').style.display = 'flex'; }
     function closeAuth() { document.getElementById('authModal').style.display = 'none'; }
 
-    function toggleAuthMode() {
-        isLoginMode = !isLoginMode;
-        document.getElementById('modalTitle').innerText = isLoginMode ? 'Вход' : 'Регистрация';
-        document.getElementById('authBtn').innerText = isLoginMode ? 'Продолжить' : 'Создать аккаунт';
-        document.getElementById('toggleText').innerText = isLoginMode ? 'Нет аккаунта?' : 'Уже есть аккаунт?';
+    function toggleMode() {
+        isLogin = !isLogin;
+        document.getElementById('mTitle').innerText = isLogin ? 'Вход' : 'Регистрация';
+        document.getElementById('aBtn').innerText = isLogin ? 'Войти' : 'Зарегистрироваться';
+        document.getElementById('tText').innerText = isLogin ? 'Нет аккаунта?' : 'Уже есть аккаунт?';
     }
 
     async function handleAuth() {
-        const email = document.getElementById('authEmail').value;
-        const password = document.getElementById('authPassword').value;
-        const endpoint = isLoginMode ? '/api/login' : '/api/register';
-
-        const res = await fetch(endpoint, {
+        const email = document.getElementById('aEmail').value;
+        const password = document.getElementById('aPassword').value;
+        const res = await fetch(isLogin ? '/api/login' : '/api/register', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ email, password })
         });
+        if(res.ok) { alert(isLogin ? 'Привет!' : 'Аккаунт создан!'); closeAuth(); }
+        else { alert('Ошибка. Проверьте данные.'); }
+    }
 
-        if (res.ok) {
-            alert(isLoginMode ? 'Добро пожаловать!' : 'Регистрация успешна!');
-            closeAuth();
-            // На следующем этапе мы сделаем здесь переход в Dashboard
-        } else {
-            alert('Ошибка доступа. Проверьте данные.');
-        }
+    async function startScan() {
+        const url = document.getElementById('urlInput').value;
+        const statusDiv = document.getElementById('status');
+        statusDiv.innerHTML = '<p style="color:var(--apple-blue)">⏳ Анализ запущен...</p>';
+        
+        await fetch('/api/scan', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ url })
+        });
+        
+        setTimeout(() => {
+            statusDiv.innerHTML = `
+                <p style="color:green; font-weight:600">Готово!</p>
+                <img src="/api/badge?url=${encodeURIComponent(url)}" style="border-radius:5px">
+            `;
+        }, 13000);
     }
 </script>
-
 </body>
 </html>
